@@ -4,7 +4,6 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import Editor from "./Editor";
 import { useTranslation } from "@/hooks/useTranslation";
-import "./SidebarWindow.css";
 
 type Category = "Prompt" | "Notes" | "Docs";
 type Mode = "normal" | "expanded" | "collapsed";
@@ -43,6 +42,8 @@ export default function SidebarWindow() {
   const [importFolder, setImportFolder] = useState("Docs");
   const [description, setDescription] = useState("");
   const [source, setSource] = useState("");
+  const [creatingProject, setCreatingProject] = useState(false);
+  const [projectName, setProjectName] = useState("");
   const saving = useRef(false);
   const pendingSave = useRef<Promise<{ path: string; content: string; result: SaveResult }> | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -213,6 +214,22 @@ export default function SidebarWindow() {
     } catch (error) { setStatus(`新建失败：${String(error)}`); }
   }
 
+  async function createProject() {
+    const name = projectName.trim();
+    if (!name || name.includes("/") || name === "." || name === "..") {
+      setStatus("项目名称不能包含路径分隔符"); return;
+    }
+    try {
+      await flushDraft();
+      const target = `${folder || category}/${name}`;
+      await invoke("sidebar_create_folder", { folder: target });
+      setCreatingProject(false); setProjectName("");
+      await refresh();
+      setSelected(null); setFolder(target);
+      setStatus("已创建项目文件夹");
+    } catch (error) { setStatus(`创建项目失败：${String(error)}`); }
+  }
+
   useEffect(() => {
     let disposed = false;
     let stopShortcut: (() => void) | undefined;
@@ -251,12 +268,13 @@ export default function SidebarWindow() {
       </header>
       <nav className="sn-tabs" aria-label="分类">{CATEGORIES.map((name) => <button key={name} className={category === name ? "active" : ""} onClick={() => void chooseCategory(name)}>{label(name)}</button>)}</nav>
       <label className="sn-search"><span>⌕</span><input ref={searchRef} aria-label="搜索标题与正文" placeholder="搜索标题与正文" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
-      <div className="sn-folder"><select aria-label="项目" value={folder} onChange={(event) => void chooseFolder(event.target.value)}><option value="">所有项目</option>{folders.filter((name) => name.startsWith(`${category}/`)).map((name) => <option key={name} value={name}>{name.slice(category.length + 1)}</option>)}</select><button onClick={() => void createNote()}>＋ 快记</button></div>
+      <div className="sn-folder"><select aria-label="项目" value={folder} onChange={(event) => void chooseFolder(event.target.value)}><option value="">所有项目</option>{folders.filter((name) => name.startsWith(`${category}/`)).map((name) => <option key={name} value={name}>{name.slice(category.length + 1)}</option>)}</select><button aria-label="新建项目" title="新建项目" onClick={() => setCreatingProject(true)}>＋ 项目</button><button onClick={() => void createNote()}>＋ 快记</button></div>
       <div className="sn-content"><div className="sn-list"><div className="sn-group">{displayFolder(folder || category)} · {visible.length} 项</div>{visible.length ? visible.map((row) => <button key={row.relative_path} className={`sn-row ${selected === row.relative_path ? "active" : ""}`} onClick={() => void chooseItem(row.relative_path)}><span><i>{row.is_markdown ? "MD" : "FILE"}</i>{row.name}</span><small>{displayFolder(row.folder)} · {row.preview.replace(/[#\n]/g, " ").slice(0, 60)}</small></button>) : <p className="sn-empty">{t("sidebar.empty")}</p>}</div>
         <main className="sn-detail">{active ? <><div className="sn-detail-head"><strong>{active.name}</strong><small>{active.is_markdown ? "Markdown" : "原文件"}</small></div>{active.is_markdown ? <><div className="sn-editor">{document && <Editor key={active.relative_path} initialContent={draft} onChange={setDraft} />}</div>{conflict && <div className="sn-conflict"><p>外部编辑与草稿冲突。两版都已保留。</p><button onClick={() => { setSelected(conflict); setConflict(null); }}>编辑草稿副本</button><button onClick={() => { setSelected(null); setConflict(null); }}>查看磁盘版</button></div>}</> : <div className="sn-artifact"><h2>{active.name}</h2><p>{displayFolder(active.folder)}</p><button onClick={() => void invoke("sidebar_open_file", { relativePath: active.relative_path })}>打开文件</button><button onClick={() => void invoke("sidebar_show_in_finder", { relativePath: active.relative_path })}>{t("sidebar.reveal")}</button><p>来源：{active.source || "待确认"}</p>{active.source && <button onClick={() => void invoke("sidebar_open_source", { relativePath: active.relative_path })}>打开来源聊天</button>}</div>}</> : <div className="sn-empty sn-detail-empty">选择一条便签或交付物。</div>}</main>
       </div>
       <footer className="sn-footer"><span className="sn-dot">●</span><span>{status}</span><span className="sn-spacer" /><span>{t("sidebar.library")}</span></footer>
     </>}
     {importPaths.length > 0 && <div className="sn-modal-backdrop"><div className="sn-modal" role="dialog" aria-modal="true" aria-label="保存交付物"><h2>保存交付物</h2><p>{importPaths.length === 1 ? importPaths[0].split("/").pop() : `${importPaths.length} 个文件`}</p><label>项目<select value={importFolder} onChange={(event) => setImportFolder(event.target.value)}><option value="Docs">{t("sidebar.artifacts")}</option>{folders.filter((name) => name.startsWith("Docs/")).map((name) => <option key={name} value={name}>{name}</option>)}</select></label><label>说明便签<textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="这个交付物是什么？下次怎么找到它？" /></label><label>来源确认<input value={source} onChange={(event) => setSource(event.target.value)} placeholder="可选：Codex / 豆包工作聊天链接" /></label><p>来源由你确认；留空则标记为待确认。</p><div className="sn-modal-actions"><button onClick={() => setImportPaths([])}>取消</button><button className="primary" onClick={() => void importFiles()}>{t("sidebar.saveArtifacts")}</button></div></div></div>}
+    {creatingProject && <div className="sn-modal-backdrop"><div className="sn-modal" role="dialog" aria-modal="true" aria-label="新建项目"><h2>新建项目</h2><label>项目名称<input aria-label="项目名称" value={projectName} onChange={(event) => setProjectName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void createProject(); }} /></label><div className="sn-modal-actions"><button onClick={() => setCreatingProject(false)}>取消</button><button className="primary" onClick={() => void createProject()}>创建项目</button></div></div></div>}
   </div>;
 }

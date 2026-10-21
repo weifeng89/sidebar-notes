@@ -57,6 +57,15 @@ describe("Sidebar Notes user journey", () => {
     await waitFor(() => expect(invoke).toHaveBeenCalledWith("sidebar_list", expect.objectContaining({ category: "Docs" })));
   });
 
+  it("creates a project from the sidebar and selects it", async () => {
+    render(<SidebarWindow />);
+    fireEvent.click(await screen.findByRole("button", { name: "展开 Prompt" }));
+    fireEvent.click(await screen.findByRole("button", { name: "新建项目" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "项目名称" }), { target: { value: "Client A" } });
+    fireEvent.click(screen.getByRole("button", { name: "创建项目" }));
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("sidebar_create_folder", { folder: "Prompt/Client A" }));
+  });
+
   it("flushes an unsaved draft before switching categories", async () => {
     render(<SidebarWindow />);
     fireEvent.click(await screen.findByRole("button", { name: "展开 Prompt" }));

@@ -11,3 +11,17 @@
 - No runtime login or secret is needed for local capture/search QA. iCloud, Apple Notes, Keychain, dictation, notifications, and real OS integrations need separate, explicitly authorized manual testing.
 - Do not create issues/PRs, push, merge, or publish without conversation authorization. An owner's direct local request does not require posting an issue first.
 - Verify behavior, not just exit codes. New gates must catch a deliberate failure in a disposable worktree. Report tested revision, commands, failures, and unverified UI/OS behavior.
+
+## Agent skills
+
+### Issue tracker
+
+Sidebar Notes development issues live as local Markdown in `.scratch/`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the canonical five triage roles. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This is a single-context repository. Read `CONTEXT.md` and relevant decisions in `docs/adr/` when present; see `docs/agents/domain.md`.

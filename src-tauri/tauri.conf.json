@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Stik",
+  "productName": "Sidebar Notes",
   "version": "0.9.0",
-  "identifier": "com.stik.app",
+  "identifier": "com.weifeng89.sidebarnotes",
   "build": {
     "beforeBuildCommand": "bun run build",
     "beforeDevCommand": "bun run dev",
@@ -15,7 +15,7 @@
     "windows": [
       {
         "label": "postit",
-        "title": "Stik",
+        "title": "Sidebar Notes",
         "width": 400,
         "height": 300,
         "minWidth": 320,
@@ -77,7 +77,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDE1NEY0NEQ3MjhDOTdFMDQKUldRRWZza28xMFJQRlV4azBUMDNXT1dmWllBVlI0NVhubDBBT056Z2dIY2FqUE1OU21SMzl4NE0K",
       "endpoints": [
-        "https://github.com/0xMassi/stik_app/releases/latest/download/latest.json"
+        "https://github.com/weifeng89/sidebar-notes/releases/latest/download/latest.json"
       ]
     }
   }

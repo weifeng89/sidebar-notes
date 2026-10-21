@@ -1,3 +1,15 @@
+# Sidebar Notes
+
+Sidebar Notes is a local macOS sidebar built from a complete [Stik](https://github.com/0xMassi/stik_app) fork. It starts as three edge bookmarks: **Prompt**, **Notes**, and **Artifacts**. Click a bookmark to open a 320 px sidebar. The Artifacts label maps to `Docs/` on disk for compatibility with the approved file layout.
+
+The sidebar stores standard Markdown notes and original-format artifacts in `~/Documents/SideNotes/`, with real category and project directories. It supports local full-text search, Finder/external editor changes, conflict copies, and redacted local logs. Stik's original features and its separate note storage remain available. The app's CLI subcommand lets local agents use the same library without opening the UI; see [agent interface](docs/agent-interface.md).
+
+This fork is under development and has no published Sidebar Notes installer yet. The Stik download links in the upstream reference below install **upstream Stik**, not this fork. To build locally, follow [CONTRIBUTING.md](CONTRIBUTING.md) with Bun 1.4.1 and the pinned DarwinKit submodule. Run `./scripts/verify.sh` before testing a local `.app`; use `STIK_DEV_ROOT` and `./scripts/build-dev.sh qa` for isolated QA.
+
+The original Stik project and MIT license are retained. The upstream README follows as a reference for its existing features.
+
+---
+
 <p align="center">
   <img src="app-icon.svg" width="128" height="128" alt="Stik icon">
 </p>

@@ -25,6 +25,7 @@ const AppleNotesPicker = lazy(
   () => import("./components/AppleNotesPicker"),
 );
 const EditorWindow = lazy(() => import("./components/EditorWindow"));
+const SidebarWindow = lazy(() => import("./components/SidebarWindow"));
 const PENDING_UPDATE_KEY = "stik_pending_update_version";
 
 function WindowLoading() {
@@ -430,6 +431,14 @@ export default function App() {
     return (
       <Suspense fallback={<WindowLoading />}>
         <EditorWindow />
+      </Suspense>
+    );
+  }
+
+  if (windowInfo.type === "sidebar") {
+    return (
+      <Suspense fallback={<WindowLoading />}>
+        <SidebarWindow />
       </Suspense>
     );
   }

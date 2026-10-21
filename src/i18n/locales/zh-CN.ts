@@ -11,6 +11,12 @@
 import type { Translations } from "..";
 
 export const zhCN: Translations = {
+  "sidebar.brand": "Sidebar Notes",
+  "sidebar.empty": "暂无内容。可新建或从 Finder 添加文件。",
+  "sidebar.reveal": "在 Finder 中显示",
+  "sidebar.library": "SideNotes/",
+  "sidebar.artifacts": "Artifacts",
+  "sidebar.saveArtifacts": "保存到 Artifacts",
   // ── Common ────────────────────────────────────────────────────────
   "common.cancel": "取消",
   "common.confirm": "确认",
@@ -471,6 +477,13 @@ export const zhCN: Translations = {
   "shortcut.manager": "命令面板（备用）",
   "shortcut.settings": "设置",
   "shortcut.lastNote": "上一条笔记",
+  "shortcut.editor": "Stik 完整编辑器",
+  "shortcut.sidebarToggle": "展开侧边栏",
+  "shortcut.sidebarSearch": "搜索侧边栏",
+  "shortcut.sidebarNew": "新建侧边栏便签",
+  "shortcut.sidebarPrompt": "侧边栏 Prompt 分类",
+  "shortcut.sidebarNotes": "侧边栏 Notes 分类",
+  "shortcut.sidebarDocs": "侧边栏 Artifacts 分类",
   "shortcut.zenMode": "禅模式",
   "shortcut.dictation": "切换听写（笔记内）",
   "shortcut.voiceNote": "新建语音笔记",

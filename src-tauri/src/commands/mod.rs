@@ -19,6 +19,7 @@ pub mod path_security;
 pub mod paths;
 pub mod settings;
 pub mod share;
+pub mod sidebar_library;
 pub mod stats;
 pub mod sticked_notes;
 pub mod storage;

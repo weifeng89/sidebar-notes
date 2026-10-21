@@ -4,7 +4,8 @@ export type WindowType =
   | "settings"
   | "command-palette"
   | "apple-notes-picker"
-  | "editor";
+  | "editor"
+  | "sidebar";
 
 export interface WindowInfo {
   type: WindowType;
@@ -29,6 +30,7 @@ export function resolveWindowInfo(search: string): WindowInfo {
     return { type: "command-palette" };
   }
   if (windowType === "editor") return { type: "editor" };
+  if (windowType === "sidebar") return { type: "sidebar" };
   if (windowType === "apple-notes-picker") {
     return { type: "apple-notes-picker" };
   }

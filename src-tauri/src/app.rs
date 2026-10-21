@@ -3,10 +3,11 @@ use crate::commands::index::NoteIndex;
 use crate::commands::{
     ai_assistant, analytics, apple_notes, cursor_positions, darwinkit, dictation, embeddings,
     file_watcher, folders, git_share, health, icloud, index, macos_notify, note_lock, notes,
-    on_this_day, settings, share, stats, sticked_notes, storage, trash,
+    on_this_day, settings, share, sidebar_library, stats, sticked_notes, storage, trash,
 };
 use crate::quit;
 use crate::shortcuts::{self, shortcut_to_string};
+use crate::sidebar;
 use crate::state::AppState;
 use crate::tray;
 use crate::windows::{
@@ -511,6 +512,19 @@ pub fn run() {
                                     show_editor(app);
                                     return;
                                 }
+                                "sidebar_toggle" => {
+                                    let _ = sidebar::toggle_expanded(app);
+                                    return;
+                                }
+                                "sidebar_search" | "sidebar_new" | "sidebar_prompt"
+                                | "sidebar_notes" | "sidebar_docs" => {
+                                    let _ = sidebar::show(app);
+                                    let _ = sidebar::set_mode(app, "normal");
+                                    if let Some(window) = app.get_webview_window("sidebar") {
+                                        let _ = window.emit("sidebar-shortcut", action);
+                                    }
+                                    return;
+                                }
                                 "last_note" => {
                                     let app = app.clone();
                                     tauri::async_runtime::spawn(async move {
@@ -625,6 +639,20 @@ pub fn run() {
             windows::open_manager,
             windows::open_settings,
             windows::open_editor,
+            sidebar::sidebar_set_mode,
+            sidebar::sidebar_set_side,
+            sidebar::sidebar_show,
+            sidebar::sidebar_get_state,
+            sidebar_library::sidebar_list,
+            sidebar_library::sidebar_list_folders,
+            sidebar_library::sidebar_read_note,
+            sidebar_library::sidebar_save_note,
+            sidebar_library::sidebar_create_note,
+            sidebar_library::sidebar_create_folder,
+            sidebar_library::sidebar_import_file,
+            sidebar_library::sidebar_open_file,
+            sidebar_library::sidebar_show_in_finder,
+            sidebar_library::sidebar_open_source,
             quit::register_quit_participant,
             quit::complete_app_quit,
             windows::transfer_to_capture,
@@ -715,6 +743,10 @@ pub fn run() {
             }
 
             tray::setup_tray(app)?;
+            if let Err(error) = sidebar::show(app.handle()) {
+                eprintln!("Sidebar Notes could not open: {error}");
+            }
+            sidebar_library::start_watcher(app.handle().clone());
             #[cfg(target_os = "macos")]
             quit::install(app.handle())?;
 

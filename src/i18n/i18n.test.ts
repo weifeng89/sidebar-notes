@@ -46,6 +46,10 @@ describe("locale catalogues", () => {
       "settings.tab.ai",
       "social.discord",
       "social.x",
+      // product name, on-disk folder, and user-selected bookmark label
+      "sidebar.brand",
+      "sidebar.library",
+      "sidebar.artifacts",
     ]);
 
     const untranslated = Object.keys(en).filter(

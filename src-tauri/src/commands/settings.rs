@@ -210,17 +210,17 @@ impl Default for StikSettings {
                     enabled: true,
                 },
                 ShortcutMapping {
-                    shortcut: "CommandOrControl+Shift+1".to_string(),
+                    shortcut: "Cmd+Alt+1".to_string(),
                     folder: "Work".to_string(),
                     enabled: true,
                 },
                 ShortcutMapping {
-                    shortcut: "CommandOrControl+Shift+2".to_string(),
+                    shortcut: "Cmd+Alt+2".to_string(),
                     folder: "Ideas".to_string(),
                     enabled: true,
                 },
                 ShortcutMapping {
-                    shortcut: "CommandOrControl+Shift+3".to_string(),
+                    shortcut: "Cmd+Alt+3".to_string(),
                     folder: "Personal".to_string(),
                     enabled: true,
                 },
@@ -236,14 +236,14 @@ impl Default for StikSettings {
             system_shortcuts: default_system_shortcuts(),
             analytics_enabled: false,
             analytics_consent_version: 0,
-            analytics_notice_dismissed: false,
+            analytics_notice_dismissed: true,
             load_remote_images: false,
             font_size: 14,
             viewing_window_size: None,
             viewing_window_position: None,
             custom_templates: vec![],
             sidebar_position: String::new(),
-            auto_update_enabled: true,
+            auto_update_enabled: false,
             text_direction: "auto".to_string(),
             hide_tray_icon: false,
             capture_window_size: None,
@@ -268,7 +268,13 @@ pub fn default_system_shortcuts() -> HashMap<String, String> {
         ("manager".to_string(), "Cmd+Shift+M".to_string()),
         ("settings".to_string(), "Cmd+Shift+Comma".to_string()),
         ("last_note".to_string(), "Cmd+Shift+L".to_string()),
-        ("editor".to_string(), "Cmd+Shift+E".to_string()),
+        ("editor".to_string(), "Cmd+Alt+E".to_string()),
+        ("sidebar_toggle".to_string(), "Cmd+Shift+E".to_string()),
+        ("sidebar_search".to_string(), "Cmd+Shift+F".to_string()),
+        ("sidebar_new".to_string(), "Cmd+Shift+N".to_string()),
+        ("sidebar_prompt".to_string(), "Cmd+Shift+1".to_string()),
+        ("sidebar_notes".to_string(), "Cmd+Shift+2".to_string()),
+        ("sidebar_docs".to_string(), "Cmd+Shift+3".to_string()),
         ("zen_mode".to_string(), "Cmd+Period".to_string()),
         ("dictation".to_string(), "Cmd+Shift+D".to_string()),
         ("voice_note".to_string(), "Cmd+Shift+V".to_string()),
@@ -282,6 +288,12 @@ pub fn local_only_actions() -> &'static [&'static str] {
 }
 
 fn normalize_system_shortcuts(shortcuts: &mut HashMap<String, String>) {
+    if shortcuts
+        .get("editor")
+        .is_some_and(|value| value == "Cmd+Shift+E")
+    {
+        shortcuts.insert("editor".into(), "Cmd+Alt+E".into());
+    }
     let defaults = default_system_shortcuts();
     for (action, default_shortcut) in &defaults {
         shortcuts
@@ -322,6 +334,13 @@ fn normalize_loaded_settings(mut settings: StikSettings) -> StikSettings {
     // Force all visible shortcuts to enabled so stale disabled state can't persist.
     for mapping in &mut settings.shortcut_mappings {
         mapping.enabled = true;
+        for digit in ["1", "2", "3"] {
+            if mapping.shortcut == format!("CommandOrControl+Shift+{digit}")
+                || mapping.shortcut == format!("Cmd+Shift+{digit}")
+            {
+                mapping.shortcut = format!("Cmd+Alt+{digit}");
+            }
+        }
     }
 
     normalize_system_shortcuts(&mut settings.system_shortcuts);
@@ -666,6 +685,22 @@ mod tests {
         let normalized = normalize_loaded_settings(settings);
         assert!(normalized.shortcut_mappings[0].enabled);
         assert!(normalized.shortcut_mappings[1].enabled);
+    }
+
+    #[test]
+    fn sidebar_shortcuts_take_priority_without_losing_stik_actions() {
+        let mut settings = StikSettings::default();
+        settings
+            .system_shortcuts
+            .insert("editor".into(), "Cmd+Shift+E".into());
+        settings.shortcut_mappings[1].shortcut = "CommandOrControl+Shift+1".into();
+        settings.shortcut_mappings[2].shortcut = "Cmd+Control+2".into();
+
+        let normalized = normalize_loaded_settings(settings);
+        assert_eq!(normalized.system_shortcuts["sidebar_toggle"], "Cmd+Shift+E");
+        assert_eq!(normalized.system_shortcuts["editor"], "Cmd+Alt+E");
+        assert_eq!(normalized.shortcut_mappings[1].shortcut, "Cmd+Alt+1");
+        assert_eq!(normalized.shortcut_mappings[2].shortcut, "Cmd+Control+2");
     }
 
     #[test]

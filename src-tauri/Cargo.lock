@@ -4367,6 +4367,7 @@ dependencies = [
  "security-framework",
  "serde",
  "serde_json",
+ "sha2",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",
@@ -4374,6 +4375,7 @@ dependencies = [
  "tauri-plugin-global-shortcut",
  "tauri-plugin-shell",
  "tauri-plugin-updater",
+ "tempfile",
  "toml 0.8.2",
  "uuid",
 ]

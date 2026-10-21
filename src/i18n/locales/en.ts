@@ -8,6 +8,12 @@
 /// theme names (Nord, Dracula), font families (Inter, JetBrains Mono), and
 /// brand names (Whisper, iCloud Drive, Discord, GitHub).
 export const en = {
+  "sidebar.brand": "Sidebar Notes",
+  "sidebar.empty": "Nothing here yet. Create a note or add a file in Finder.",
+  "sidebar.reveal": "Show in Finder",
+  "sidebar.library": "SideNotes/",
+  "sidebar.artifacts": "Artifacts",
+  "sidebar.saveArtifacts": "Save to Artifacts",
   // ── Common ────────────────────────────────────────────────────────
   "common.cancel": "cancel",
   "common.confirm": "confirm",
@@ -470,6 +476,13 @@ export const en = {
   "shortcut.manager": "Command Palette (alt)",
   "shortcut.settings": "Settings",
   "shortcut.lastNote": "Last note",
+  "shortcut.editor": "Stik full editor",
+  "shortcut.sidebarToggle": "Expand Sidebar Notes",
+  "shortcut.sidebarSearch": "Search Sidebar Notes",
+  "shortcut.sidebarNew": "New sidebar note",
+  "shortcut.sidebarPrompt": "Sidebar Prompt category",
+  "shortcut.sidebarNotes": "Sidebar Notes category",
+  "shortcut.sidebarDocs": "Sidebar Artifacts category",
   "shortcut.zenMode": "Zen mode",
   "shortcut.dictation": "Toggle dictation (in note)",
   "shortcut.voiceNote": "New voice note",

@@ -11,7 +11,7 @@ Date: 2026-10-22. Scope: local arm64 macOS build, isolated `STIK_DEV_ROOT` test 
 | R5 / AC6 search | Pass in automated tests | Title and body search and Enter-to-open covered. Persistent 10,000-file index measured 411 ms cold scan and 2 ms warm search on this Mac. |
 | R8 / AC7 external edits | Pass for automatic refresh | A newly written QA `.md` appeared in the native Notes list without switching categories after the `sidebar` Tauri capability was fixed. The 1-second end-to-end limit was not instrumented. |
 | AC8 system Trash | Pass | Native delete removed an isolated QA note from the library, and the same file appeared in macOS `~/.Trash`. |
-| R7 / AC9 shortcuts | Partial | Shortcut registration and mapping tested at code level. Cross-app keyboard use and the 300 ms latency target were not measured. |
+| R7 / AC9 shortcuts | Partial | Shortcut registration and mapping tested at code level. The isolated `STIK_DEV_ROOT` profile deliberately clears all global shortcuts to avoid taking over the user's keys, so cross-app keyboard use and the 300 ms latency target were not measured. Production registration results are logged without shortcut text. |
 | AC11 build gates | Pass | `./scripts/verify.sh`: frontend, Rust, Swift, format, Clippy, platform and bundle checks passed. The old instruction to remove Stik modules was superseded by the approved plan to preserve Stik features. |
 | AC12 app | Partial | Native debug `.app` launched in isolation. Release `.app` build and size are recorded in the handoff after final packaging. |
 | Artifact import | Pass for one real file | The supplied HTML report was imported, found through search, and displayed with source awaiting confirmation. The user explicitly deferred the other nine real-file cases. |

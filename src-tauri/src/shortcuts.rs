@@ -234,7 +234,21 @@ pub fn register_shortcuts_from_settings(app: &AppHandle, settings: &StikSettings
             action_map.insert(key, action.clone());
             // Skip global registration for in-app-only shortcuts (e.g. zen mode)
             if !local_only.contains(&action.as_str()) {
-                let _ = app.global_shortcut().register(shortcut);
+                let result = app.global_shortcut().register(shortcut);
+                if action.starts_with("sidebar_") {
+                    let operation = match action.as_str() {
+                        "sidebar_toggle" => "shortcut_register_toggle",
+                        "sidebar_search" => "shortcut_register_search",
+                        "sidebar_new" => "shortcut_register_new",
+                        "sidebar_prompt" => "shortcut_register_prompt",
+                        "sidebar_notes" => "shortcut_register_notes",
+                        "sidebar_docs" => "shortcut_register_docs",
+                        _ => "shortcut_register",
+                    };
+                    let _ = crate::sidebar_log::trace(operation, None, || {
+                        result.map_err(|_| "shortcut_registration_failed".into())
+                    });
+                }
             }
         }
     }

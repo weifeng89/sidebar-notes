@@ -5,7 +5,7 @@
 
 set -e
 
-echo "Installing agent skills for Stik..."
+echo "Installing agent skills for Sidebar Notes..."
 echo ""
 
 # React + Web (Vercel)

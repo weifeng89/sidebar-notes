@@ -28,9 +28,9 @@ Usage: ./scripts/build-dev.sh [doctor|setup|dev|qa|build|sidecar]
 
   doctor    Check local prerequisites without installing or building
   setup     Initialize submodules, install dependencies, build sidecar and frontend
-  dev       Start Stik Dev with isolated data and hot reload (default)
-  qa        Build and launch an isolated Stik Dev.app for native UI automation
-  build     Build DarwinKit and a local debug Stik.app for this Mac
+  dev       Start Sidebar Notes Dev with isolated data and hot reload (default)
+  qa        Build and launch an isolated Sidebar Notes Dev.app for native UI automation
+  build     Build DarwinKit and a local debug Sidebar Notes.app for this Mac
   sidecar   Build and install only the DarwinKit sidecar
 EOF
 }
@@ -78,12 +78,8 @@ resolve_architecture() {
       SWIFT_ARCH="arm64"
       RUST_TARGET="aarch64-apple-darwin"
       ;;
-    x86_64)
-      SWIFT_ARCH="x86_64"
-      RUST_TARGET="x86_64-apple-darwin"
-      ;;
     *)
-      fail "unsupported Mac architecture: $(uname -m)"
+      fail "Sidebar Notes supports Apple Silicon Macs only; found $(uname -m)"
       ;;
   esac
   readonly SWIFT_ARCH RUST_TARGET
@@ -125,7 +121,7 @@ main() {
   fi
   [[ $# -le 1 ]] || fail "expected at most one mode argument"
   case "$mode" in doctor|setup|dev|qa|build|sidecar) ;; *) usage >&2; fail "unknown mode: $mode" ;; esac
-  [[ "$(uname -s)" == "Darwin" ]] || fail "Stik development builds require macOS"
+  [[ "$(uname -s)" == "Darwin" ]] || fail "Sidebar Notes development builds require macOS"
 
   require_command node "Install Node.js 20 or newer."
   node -e 'if (Number(process.versions.node.split(".")[0]) < 20) { console.error("Node.js 20 or newer is required"); process.exit(1); }'
@@ -170,8 +166,8 @@ main() {
     dev)
       build_sidecar debug
       local dev_config
-      dev_config="$(node -e 'process.stdout.write(JSON.stringify({identifier:"com.stik.dev",productName:"Stik Dev",build:{devUrl:`http://127.0.0.1:${process.env.STIK_DEV_PORT}`}}))')"
-      log "Starting Stik Dev (${RUST_TARGET}, port ${STIK_DEV_PORT})"
+      dev_config="$(node -e 'process.stdout.write(JSON.stringify({identifier:"com.weifeng89.sidebarnotes.dev",productName:"Sidebar Notes Dev",build:{devUrl:`http://127.0.0.1:${process.env.STIK_DEV_PORT}`}}))')"
+      log "Starting Sidebar Notes Dev (${RUST_TARGET}, port ${STIK_DEV_PORT})"
       bun run tauri dev --target "$RUST_TARGET" --config "$dev_config" 2>&1 | tee "$STIK_DEV_ROOT/logs/dev.log"
       ;;
     setup)
@@ -181,20 +177,20 @@ main() {
     qa)
       build_sidecar debug
       bun run tauri build --debug --target "$RUST_TARGET" --bundles app \
-        --config '{"identifier":"com.stik.dev","productName":"Stik Dev","bundle":{"createUpdaterArtifacts":false}}'
-      log "Launching Stik Dev.app; stop with Ctrl-C"
-      "$REPO_ROOT/src-tauri/target/$RUST_TARGET/debug/bundle/macos/Stik Dev.app/Contents/MacOS/stik" \
+        --config '{"identifier":"com.weifeng89.sidebarnotes.dev","productName":"Sidebar Notes Dev","bundle":{"createUpdaterArtifacts":false}}'
+      log "Launching Sidebar Notes Dev.app; stop with Ctrl-C"
+      "$REPO_ROOT/src-tauri/target/$RUST_TARGET/debug/bundle/macos/Sidebar Notes Dev.app/Contents/MacOS/stik" \
         2>&1 | tee "$STIK_DEV_ROOT/logs/dev.log"
       ;;
     build)
       build_sidecar debug
-      log "Building local Stik.app (${RUST_TARGET})"
+      log "Building local Sidebar Notes.app (${RUST_TARGET})"
       bun run tauri build \
         --debug \
         --target "$RUST_TARGET" \
         --bundles app \
         --config '{"bundle":{"createUpdaterArtifacts":false}}'
-      log "App ready at src-tauri/target/${RUST_TARGET}/debug/bundle/macos/Stik.app"
+      log "App ready at src-tauri/target/${RUST_TARGET}/debug/bundle/macos/Sidebar Notes.app"
       ;;
     sidecar)
       build_sidecar debug

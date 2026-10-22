@@ -11,7 +11,7 @@ name: Beta Build
 #   - no Homebrew tap update
 #   - published as a GitHub *prerelease*, so it never shows as "Latest"
 #
-# Installs as a separate app ("Stik Beta", com.stik.app.beta) so it sits
+# Installs as a separate app ("Sidebar Notes Beta", com.weifeng89.sidebarnotes.beta) so it sits
 # alongside your stable install instead of replacing it.
 on:
   push:
@@ -100,7 +100,7 @@ jobs:
           echo "tag=beta-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
           echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
-      - name: Rebrand as Stik Beta
+      - name: Set Sidebar Notes beta identity
         # A distinct productName + identifier is what lets the beta install
         # next to stable. This does NOT separate your data: notes
         # (~/Documents/Stik) and settings (~/.stik) are resolved in code, not
@@ -110,8 +110,8 @@ jobs:
           import json, os, pathlib
           p = pathlib.Path("src-tauri/tauri.conf.json")
           d = json.loads(p.read_text())
-          d["productName"] = "Stik Beta"
-          d["identifier"] = "com.stik.app.beta"
+          d["productName"] = "Sidebar Notes Beta"
+          d["identifier"] = "com.weifeng89.sidebarnotes.beta"
           d["version"] = os.environ["BETA_VERSION"]
           # `--bundles app` does NOT suppress the updater tarball: bundle
           # .createUpdaterArtifacts is "v1Compatible", which emits
@@ -130,7 +130,7 @@ jobs:
           upd = d.setdefault("plugins", {}).get("updater")
           if upd is not None:
               upd["endpoints"] = [
-                  "https://github.com/0xMassi/stik_app/releases/download/beta-no-updates/latest.json"
+                  "https://github.com/weifeng89/sidebar-notes/releases/download/beta-no-updates/latest.json"
               ]
           p.write_text(json.dumps(d, indent=2))
           print(d["productName"], d["identifier"], d["version"])
@@ -202,8 +202,8 @@ jobs:
           VERSION: ${{ steps.meta.outputs.version }}
         run: |
           set -euo pipefail
-          APP="src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Stik Beta.app"
-          DMG="${RUNNER_TEMP}/Stik-Beta_${VERSION}_aarch64.dmg"
+          APP="src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Sidebar Notes Beta.app"
+          DMG="${RUNNER_TEMP}/Sidebar-Notes-Beta_${VERSION}_aarch64.dmg"
 
           if [ ! -d "$APP" ]; then
             echo "::error::Expected .app not found at $APP"
@@ -211,7 +211,7 @@ jobs:
             exit 1
           fi
 
-          hdiutil create -volname "Stik Beta" -srcfolder "$APP" -ov -format UDZO "$DMG"
+          hdiutil create -volname "Sidebar Notes Beta" -srcfolder "$APP" -ov -format UDZO "$DMG"
           codesign --sign "$APPLE_SIGNING_IDENTITY" --timestamp "$DMG"
           codesign --verify --verbose=2 "$DMG"
           echo "DMG_PATH=$DMG" >> "$GITHUB_ENV"
@@ -229,16 +229,13 @@ jobs:
               echo "> 🔓 **Signed but _not_ notarized.** Built with notarization"
               echo "> skipped, so Gatekeeper will refuse the first launch. Right-click"
               echo "> the app → **Open** → **Open**, or run:"
-              echo "> \`xattr -dr com.apple.quarantine \"/Applications/Stik Beta.app\"\`"
+              echo "> \`xattr -dr com.apple.quarantine \"/Applications/Sidebar Notes Beta.app\"\`"
               echo
             fi
-            echo "Installs as **Stik Beta** (\`com.stik.app.beta\`) alongside your stable Stik."
+            echo "Installs as **Sidebar Notes Beta** (\`com.weifeng89.sidebarnotes.beta\`) alongside stable Sidebar Notes."
             echo
-            echo "> ⚠️ **Shares your real data.** Notes (\`~/Documents/Stik\`) and"
-            echo "> settings (\`~/.stik\`) are resolved in code, not from the bundle"
-            echo "> id, so this build uses the same files as stable. Point it at a"
-            echo "> scratch folder in **Settings → Folders → Notes directory** before"
-            echo "> testing anything destructive."
+            echo "> Uses a separate app identity. Sidebar Notes data remains under"
+            echo "> \`~/Documents/SideNotes\`; legacy Stik data remains in its original location."
             echo
             echo "Ships no updater artifacts and does not touch \`latest.json\` or the"
             echo "Homebrew tap, so stable users are never offered this build."
@@ -256,6 +253,6 @@ jobs:
           gh release create "$TAG" "$DMG_PATH" \
             --target "$GITHUB_SHA" \
             --prerelease \
-            --title "Stik Beta ${VERSION}" \
+            --title "Sidebar Notes Beta ${VERSION}" \
             --notes-file "${RUNNER_TEMP}/notes.md"
           echo "::notice::Published $TAG — download the DMG from the release page"

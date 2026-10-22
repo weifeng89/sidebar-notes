@@ -1,13 +1,18 @@
 [package]
-name = "stik"
+name = "sidebar-notes"
 version = "0.9.0"
-description = "Instant thought capture"
+description = "A local macOS library for prompts, notes, and project artifacts"
 authors = ["Massi"]
 edition = "2021"
 
 [lib]
 name = "stik_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
+
+# Keep the installed executable name stable for the existing remote agent CLI.
+[[bin]]
+name = "stik"
+path = "src/main.rs"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

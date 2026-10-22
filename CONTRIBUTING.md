@@ -1,20 +1,19 @@
-# Contributing to Stik
+# Contributing to Sidebar Notes
 
-Thanks for your interest in contributing to Stik! This guide covers everything you need to get started.
+Thanks for your interest in contributing to Sidebar Notes. This guide covers local development and verification.
 
 ## Before You Start
 
-For unsolicited contributions, please [open an issue](https://github.com/0xMassi/stik_app/issues) first to discuss the approach and avoid duplicate work. Small typo fixes and directly assigned local work do not require a new issue. Agents must not post remotely without authorization.
-
-Check the [Ideas Board](https://www.stik.ink/ideas) to see what the community is asking for and the [Roadmap](ROADMAP.md) for planned work.
+Discuss product changes in the Sidebar Notes repository before opening a pull request. Agents must not post remotely without authorization.
 
 ## Prerequisites
 
-Stik is a **macOS-only** app. You need a Mac to develop and test.
+Sidebar Notes is a **macOS-only** app. You need a Mac to develop and test.
 
 | Tool | Version | Install |
 |------|---------|---------|
 | macOS | 14+ | -- |
+| Architecture | Apple Silicon (M-series) | -- |
 | Xcode | 26+ (Swift 6.2+) | Select a compatible Xcode with `xcode-select` or `DEVELOPER_DIR`; the build host must support that Xcode. |
 | Rust | Stable | [rustup.rs](https://rustup.rs/) |
 | Protobuf compiler | `protoc` on PATH | `brew install protobuf` |
@@ -26,8 +25,8 @@ Stik is a **macOS-only** app. You need a Mac to develop and test.
 
 ```bash
 # Clone with submodules (DarwinKit sidecar)
-git clone --recurse-submodules https://github.com/0xMassi/stik_app.git
-cd stik_app
+git clone --recurse-submodules https://github.com/weifeng89/sidebar-notes.git
+cd sidebar-notes
 
 # Initialize submodules, install locked dependencies, build DarwinKit + frontend
 ./scripts/build-dev.sh setup
@@ -50,7 +49,7 @@ Use `bun add` and `bun remove` for dependency changes, and commit the resulting 
 ## Project Structure
 
 ```
-stik_app/
+sidebar-notes/
   src/                        # Frontend (React + TypeScript)
     components/               # UI components (PostIt, Editor, etc.)
     extensions/               # CodeMirror editor extensions
@@ -71,10 +70,10 @@ stik_app/
 
 ## Architecture Overview
 
-Stik is a **Tauri 2.0** app with three layers:
+Sidebar Notes is a **Tauri 2.0** app with three layers:
 
 - **Frontend**: React 19 + TypeScript + Tailwind CSS + CodeMirror 6. `App.tsx` routes each Tauri window from its `?window=<type>` URL and lazy-loads window-specific surfaces. Tauri commands and events provide IPC.
-- **Backend**: Rust. Notes stored as `.md` files in `~/Documents/Stik/<Folder>/`, settings in `~/.stik/`. Core logic extracted into `_inner` functions for cross-module calls without Tauri State.
+- **Backend**: Rust. Sidebar Notes files are stored in `~/Documents/SideNotes/`; retained Stik features use their legacy data paths. Core logic extracted into `_inner` functions for cross-module calls without Tauri State.
 - **DarwinKit**: Swift CLI sidecar for on-device NLP (embeddings, language detection, sentiment) via JSON-RPC over stdio. Communicates with the Rust backend as a managed child process.
 
 ## Development Workflow
@@ -106,11 +105,11 @@ The storage integration test creates its own process-local data, checks real fil
 
 ### Isolated development and UI QA
 
-`dev` and `qa` create a new temporary profile and print its location. To resume a session, pass an existing absolute directory: `STIK_DEV_ROOT=/absolute/session ./scripts/build-dev.sh qa`. Notes live under `notes/`, application settings/caches under `config/`, and native/Vite output under `logs/dev.log`. Stop with **Ctrl-C**; data remains for inspection. These modes use `com.stik.dev`/`Stik Dev`, separate from the regular app. `qa` needs no HTTP server; `dev` binds only to `127.0.0.1`, default port 1420. If occupied, use `STIK_DEV_PORT=1422 ./scripts/build-dev.sh dev`; never terminate an unrelated listener.
+`dev` and `qa` create a new temporary profile and print its location. To resume a session, pass an existing absolute directory: `STIK_DEV_ROOT=/absolute/session ./scripts/build-dev.sh qa`. Notes live under `notes/`, application settings/caches under `config/`, and native/Vite output under `logs/dev.log`. Stop with **Ctrl-C**; data remains for inspection. These modes use `com.weifeng89.sidebarnotes.dev` / `Sidebar Notes Dev`, separate from the regular app. `qa` needs no HTTP server; `dev` binds only to `127.0.0.1`, default port 1420. If occupied, use `STIK_DEV_PORT=1422 ./scripts/build-dev.sh dev`; never terminate an unrelated listener.
 
 The debug-only profile pins the notes root and disables normal global shortcuts, analytics, updates, AI, dictation, iCloud/Git workers, Apple Notes import, and production Keychain access. Do not copy personal data or credentials into it. This is **not a security sandbox**: explicit file pickers, external-file editing, and shell/OS actions still require care. Test real OS/account integrations separately with explicit authorization and development data. Release builds reject `STIK_DEV_ROOT` rather than silently using personal state.
 
-For native automation, select the running `src-tauri/target/<host-triple>/debug/bundle/macos/Stik Dev.app` by its full path. A bare hot-reload executable may not be discoverable by native automation. Do not double-click that bundle later without the launcher: the launcher supplies the isolated profile. The existing `build` mode remains the ordinary unsigned local build and does not launch it.
+For native automation, select the running `src-tauri/target/<host-triple>/debug/bundle/macos/Sidebar Notes Dev.app` by its full path. A bare hot-reload executable may not be discoverable by native automation. Do not double-click that bundle later without the launcher: the launcher supplies the isolated profile. The existing `build` mode remains the ordinary unsigned local build and does not launch it.
 
 If native automation cannot read the app or times out, report UI QA as unverified and perform the flow manually; a successful build, startup log, or backend test does not establish UI correctness.
 
@@ -230,20 +229,18 @@ Keep the subject line under 72 characters. Use the body for details when needed.
 When filing a bug, include:
 
 - macOS version
-- Stik version (Settings or `brew info stik`)
+- Sidebar Notes version (Settings → About)
 - Steps to reproduce
 - Expected vs actual behavior
-- Console logs if relevant (`Console.app` > filter by "Stik")
+- Console logs if relevant (`Console.app` > filter by `com.weifeng89.sidebarnotes`)
 
 ## Feature Requests
 
-Use the [Ideas Board](https://www.stik.ink/ideas) to submit and vote on feature ideas. For implementation proposals, open a GitHub issue with your proposed approach.
+For implementation proposals, open an issue in the Sidebar Notes GitHub repository with your proposed approach.
 
 ## Community
 
-- [Discord](https://discord.gg/gG8vdCCRzW) -- Chat with other contributors
-- [X / Twitter](https://x.com/stik_app) -- Updates and announcements
-- [Ideas Board](https://www.stik.ink/ideas) -- Feature voting
+- [GitHub Issues](https://github.com/weifeng89/sidebar-notes/issues) -- Feature requests and bug reports
 
 ## License
 

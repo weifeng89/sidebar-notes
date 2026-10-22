@@ -153,7 +153,7 @@ fn clip_capture(app: &AppHandle) {
         Some(_) => {
             log("AX read OK but selected text is empty");
             let _ = macos_notify::show(
-                "Stik",
+                "Sidebar Notes",
                 "Nothing selected",
                 "Highlight some text first, then press the shortcut.",
             );
@@ -162,9 +162,9 @@ fn clip_capture(app: &AppHandle) {
         None => {
             log("AX read failed — app doesn't expose selected text");
             let _ = macos_notify::show(
-                "Stik",
+                "Sidebar Notes",
                 "Can't read selection",
-                "This app doesn't expose selected text. Copy it manually, then paste into Stik.",
+                "This app doesn't expose selected text. Copy it manually, then paste into Sidebar Notes.",
             );
             return;
         }
@@ -193,11 +193,11 @@ fn clip_capture(app: &AppHandle) {
             let _ = app.emit("files-changed", vec![result.path.clone()]);
 
             let preview: String = text.lines().next().unwrap_or("").chars().take(60).collect();
-            let _ = macos_notify::show("Stik", &format!("Saved to {}", folder), &preview);
+            let _ = macos_notify::show("Sidebar Notes", &format!("Saved to {}", folder), &preview);
         }
         Err(e) => {
             log(&format!("save failed: {}", e));
-            let _ = macos_notify::show("Stik", "Save failed", &e);
+            let _ = macos_notify::show("Sidebar Notes", "Save failed", &e);
         }
     }
 }
@@ -214,15 +214,15 @@ fn warn_about_accessibility() {
     if !already_warned {
         open_accessibility_settings();
         let _ = macos_notify::show(
-            "Stik",
+            "Sidebar Notes",
             "Accessibility permission needed",
-            "Opened System Settings. Enable Stik, quit + relaunch Stik, then try again.",
+            "Opened System Settings. Enable Sidebar Notes, quit + relaunch Sidebar Notes, then try again.",
         );
     } else {
         let _ = macos_notify::show(
-            "Stik",
+            "Sidebar Notes",
             "Clipboard capture still blocked",
-            "Quit & relaunch Stik after toggling Accessibility back on.",
+            "Quit & relaunch Sidebar Notes after toggling Accessibility back on.",
         );
     }
 }
@@ -463,8 +463,10 @@ fn start_deferred_services(app: AppHandle, plan: StartupPlan) {
 }
 
 fn validate_dev_launch(identifier: &str, dev_session: bool) -> Result<(), &'static str> {
-    if identifier == "com.stik.dev" && !dev_session {
-        return Err("Stik Dev requires STIK_DEV_ROOT; launch with scripts/build-dev.sh qa or dev");
+    if identifier == "com.weifeng89.sidebarnotes.dev" && !dev_session {
+        return Err(
+            "Sidebar Notes Dev requires STIK_DEV_ROOT; launch with scripts/build-dev.sh qa or dev",
+        );
     }
     Ok(())
 }
@@ -826,8 +828,8 @@ mod tests {
 
     #[test]
     fn dev_bundle_refuses_to_start_without_an_isolated_profile() {
-        assert!(validate_dev_launch("com.stik.dev", false).is_err());
-        assert!(validate_dev_launch("com.stik.dev", true).is_ok());
+        assert!(validate_dev_launch("com.weifeng89.sidebarnotes.dev", false).is_err());
+        assert!(validate_dev_launch("com.weifeng89.sidebarnotes.dev", true).is_ok());
         assert!(validate_dev_launch("com.0xmassi.stik", false).is_ok());
     }
 

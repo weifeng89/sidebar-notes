@@ -48,7 +48,7 @@ fn open_readonly_database(path: &std::path::Path) -> Result<Connection, String> 
     let conn = Connection::open_with_flags(path, flags).map_err(|e| {
         let msg = e.to_string();
         if msg.contains("unable to open") || msg.contains("permission") || msg.contains("denied") {
-            "FULL_DISK_ACCESS_REQUIRED: Stik needs Full Disk Access to read Apple Notes. \
+            "FULL_DISK_ACCESS_REQUIRED: Sidebar Notes needs Full Disk Access to read Apple Notes. \
              Go to System Settings → Privacy & Security → Full Disk Access, then add Stik."
                 .to_string()
         } else {

@@ -20,7 +20,7 @@ The SSH target is a host alias, not a library path. The client always returns JS
 
 To accept this feature, run from the actual remote host against a disposable `STIK_DEV_ROOT` debug profile on the Mac and verify search, create, show, save, conflict copy, and artifact import. A local fake-SSH test exercises framing but does not prove reachability or key restrictions. Release builds reject `STIK_DEV_ROOT`; never run unattended tests against personal notes.
 
-Run the app executable with `cli`. For a development build, replace `APP` with the absolute path to `stik` inside the built `.app/Contents/MacOS/` directory. The production bundle will document its executable path when packaged.
+Run the app executable with `cli`. The production app is `'/Applications/Sidebar Notes.app/Contents/MacOS/stik'`; a development build uses the `stik` executable inside `Sidebar Notes Dev.app/Contents/MacOS/`.
 
 ```sh
 "$APP" cli --json folders

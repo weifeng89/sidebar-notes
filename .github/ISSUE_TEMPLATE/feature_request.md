@@ -21,4 +21,4 @@ Mockups, screenshots, or links to similar features in other apps.
 
 ---
 
-> You can also submit and vote on ideas at the [Ideas Board](https://www.stik.ink/ideas).
+> You can also discuss and track the feature in this repository's issues.

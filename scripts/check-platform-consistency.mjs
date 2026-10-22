@@ -3,8 +3,6 @@ import { readFile } from "node:fs/promises";
 const expectedVersion = "14.0";
 const expectedSwiftVersion = ".macOS(.v14)";
 const expectedRunner = "runs-on: macos-14";
-const expectedCaskRequirement = "depends_on macos: :sonoma";
-
 const failures = [];
 
 async function requireText(path, expected, description) {
@@ -38,20 +36,11 @@ await Promise.all([
     "the Swift deployment target",
   ),
   requireText("README.md", "macOS 14+", "the public support requirement"),
+  requireText("README.md", "Apple Silicon", "the Apple Silicon architecture target"),
   requireText(
     "CONTRIBUTING.md",
     "| macOS | 14+ |",
     "the contributor support requirement",
-  ),
-  requireText(
-    ".github/homebrew-cask-template.rb",
-    expectedCaskRequirement,
-    "the Homebrew support requirement",
-  ),
-  requireText(
-    ".github/workflows/release.yml",
-    expectedCaskRequirement,
-    "the generated Homebrew support requirement",
   ),
   requireText(
     ".github/workflows/ci.yml",
@@ -63,6 +52,7 @@ await Promise.all([
     "runs-on: macos-15",
     "the release runner",
   ),
+  requireText("scripts/build-dev.sh", "supports Apple Silicon Macs only", "the local build architecture restriction"),
   requireText(
     ".github/workflows/beta.yml",
     "runs-on: macos-15",
@@ -76,8 +66,19 @@ await Promise.all([
     requireText(`.github/workflows/${workflow}.yml`, "DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer", "a compatible pinned Swift build toolchain"),
   ),
   requireText(".github/workflows/beta.yml", '--target "$GITHUB_SHA"', "the exact beta build revision"),
-  requireText(".github/workflows/release.yml", "if: github.event_name == 'release' && !github.event.release.prerelease", "published stable assets before distribution updates"),
+  requireText(".github/workflows/release.yml", "Sidebar Notes.app", "the fork's app bundle name"),
+  requireText(".github/workflows/release.yml", "--target aarch64-apple-darwin", "the Apple Silicon release target"),
 ]);
+
+const releaseWorkflow = await readFile(".github/workflows/release.yml", "utf8");
+if (/x86_64|0xMassi\/stik_app|HOMEBREW_TAP_TOKEN|VERCEL_DEPLOY_HOOK/.test(releaseWorkflow)) {
+  failures.push(".github/workflows/release.yml: release must target this fork on Apple Silicon only");
+}
+
+const ciWorkflow = await readFile(".github/workflows/ci.yml", "utf8");
+if (/x86_64|macos-15-intel/.test(ciWorkflow)) {
+  failures.push(".github/workflows/ci.yml: remove Intel-only build targets");
+}
 
 if (failures.length > 0) {
   console.error("Release configuration checks failed:\n");

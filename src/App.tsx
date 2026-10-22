@@ -319,7 +319,7 @@ export default function App() {
         }
 
         console.log(
-          `Stik update available: v${update.currentVersion} → v${update.version}`,
+          `Sidebar Notes update available: v${update.currentVersion} → v${update.version}`,
         );
         await update.downloadAndInstall();
         localStorage.setItem(PENDING_UPDATE_KEY, update.version);

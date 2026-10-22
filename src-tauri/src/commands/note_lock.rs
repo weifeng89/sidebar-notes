@@ -277,7 +277,7 @@ pub fn authenticate() -> Result<bool, String> {
         return Ok(true);
     }
 
-    let success = trigger_auth("Stik wants to access locked notes")?;
+    let success = trigger_auth("Sidebar Notes wants to access locked notes")?;
     if success {
         unlock_session();
     }

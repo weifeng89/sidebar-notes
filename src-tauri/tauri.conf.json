@@ -36,7 +36,9 @@
       "assetProtocol": {
         "enable": true,
         "scope": [
+          "$DOCUMENT/SideNotes/**/.assets/**",
           "$DOCUMENT/Stik/**/.assets/**",
+          "$HOME/Library/Mobile Documents/com~apple~CloudDocs/SideNotes/**/.assets/**",
           "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Stik/**/.assets/**"
         ]
       }

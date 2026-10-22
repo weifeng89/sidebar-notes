@@ -590,3 +590,6 @@ First release
 [0.3.0]: https://github.com/0xMassi/stik_app/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/0xMassi/stik_app/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/0xMassi/stik_app/releases/tag/v0.1.0
+# Inherited upstream Stik changelog
+
+Entries below describe the upstream Stik project. Sidebar Notes release notes begin only when explicitly labeled with a Sidebar Notes version.

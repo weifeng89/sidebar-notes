@@ -3,7 +3,7 @@
   "configVersion": 0,
   "workspaces": {
     "": {
-      "name": "stik",
+      "name": "sidebar-notes",
       "dependencies": {
         "@codemirror/autocomplete": "^6.18.0",
         "@codemirror/lang-markdown": "^6.3.0",

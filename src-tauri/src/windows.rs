@@ -282,7 +282,7 @@ pub fn show_editor(app: &AppHandle) {
         "editor",
         WebviewUrl::App("index.html?window=editor".into()),
     )
-    .title("Stik Editor")
+    .title("Sidebar Notes Editor")
     .inner_size(EDITOR_WINDOW_WIDTH, EDITOR_WINDOW_HEIGHT)
     .min_inner_size(EDITOR_WINDOW_MIN_WIDTH, EDITOR_WINDOW_MIN_HEIGHT)
     .resizable(true)

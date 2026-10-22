@@ -1,6 +1,6 @@
 /// Internationalization — locale registry, active-locale store and the
 /// `translate` primitive. Deliberately dependency-free: the whole runtime is
-/// a lookup plus `{placeholder}` substitution, which is all Stik needs.
+/// a lookup plus `{placeholder}` substitution, which is all the app needs.
 ///
 /// English (`en`) is the source of truth. Every other locale is typed as
 /// `Record<TranslationKey, string>`, so a missing or misspelled key is a

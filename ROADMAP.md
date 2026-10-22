@@ -166,3 +166,6 @@ The implementation pass is complete; the remaining gates require signed artifact
 ---
 
 *Last updated: August 31, 2026*
+# Historical upstream Stik roadmap
+
+This roadmap is preserved from the Stik fork source and does not describe Sidebar Notes priorities or release status.

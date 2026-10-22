@@ -2,7 +2,7 @@
 ///
 /// Beta builds are produced by `.github/workflows/beta.yml`, which stamps
 /// `tauri.conf.json` with a SemVer pre-release version (`0.8.0-beta.7`) and
-/// renames the app to "Stik Beta". The version string is the reliable signal:
+/// renames the app to "Sidebar Notes Beta". The version string is the reliable signal:
 /// it is set by the workflow itself, whereas the product name could drift.
 
 /// BETA for a nonempty SemVer pre-release identifier; null for stable builds.

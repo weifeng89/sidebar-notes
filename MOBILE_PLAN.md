@@ -557,3 +557,6 @@ Zero open PRs and zero open issues, so nothing is queued behind review.
     desktop updater point at once mobile releases exist?
 12. Does Android get a fallback sync target under the cut line, or does it ship
     local-only?
+# Historical upstream Stik mobile plan
+
+This plan is preserved from the Stik fork source and is not part of the Sidebar Notes product scope.

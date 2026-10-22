@@ -1,224 +1,57 @@
 # Sidebar Notes
 
-Sidebar Notes is a local macOS sidebar built from a complete [Stik](https://github.com/0xMassi/stik_app) fork. It starts as three edge bookmarks: **Prompt**, **Notes**, and **Artifacts**. Click a bookmark to open a 320 px sidebar. The Artifacts label maps to `Docs/` on disk for compatibility with the approved file layout.
+Sidebar Notes is a local macOS library for prompts, notes, and project artifacts. The app starts as three edge bookmarks: **Prompt**, **Notes**, and **Artifacts**. Clicking one opens the 320 px sidebar. The Artifacts bookmark maps to `Docs/` on disk.
 
-The sidebar stores standard Markdown notes and original-format artifacts in `~/Documents/SideNotes/`, with real category and project directories. It supports local full-text search, Finder/external editor changes, conflict copies, and redacted local logs. Stik's original features and its separate note storage remain available. The app's CLI subcommand lets local agents use the same library without opening the UI; see [agent interface](docs/agent-interface.md).
+The library lives at `~/Documents/SideNotes/` and uses ordinary folders and files. Notes and descriptions are standard Markdown; delivered files stay in their original formats. Finder changes are watched, deletions go to macOS Trash, and local logs omit document contents and absolute paths. The CLI operates on this same library so local and remote agents share one source of truth; see [the agent interface guide](docs/agent-interface.md).
 
-This fork is under development and has no published Sidebar Notes installer yet. The Stik download links in the upstream reference below install **upstream Stik**, not this fork. To build locally, follow [CONTRIBUTING.md](CONTRIBUTING.md) with Bun 1.4.1 and the pinned DarwinKit submodule. Run `./scripts/verify.sh` before testing a local `.app`; use `STIK_DEV_ROOT` and `./scripts/build-dev.sh qa` for isolated QA.
+The project is a fork of [Stik](https://github.com/0xMassi/stik_app). Existing capture/editor features, their data, and the upstream MIT license are retained. Stik-specific historical material is kept in the source tree for reference; it is not current Sidebar Notes product or release documentation.
 
-The original Stik project and MIT license are retained. The upstream README follows as a reference for its existing features.
+## Install or build
 
----
+This repository builds an ad-hoc signed Apple Silicon `.app` for local installation. It is not Developer ID signed or notarized. On first open, macOS may require opening it from Finder's context menu.
 
-<p align="center">
-  <img src="app-icon.svg" width="128" height="128" alt="Sidebar Notes icon">
-</p>
-
-<h1 align="center">Stik</h1>
-
-<p align="center">
-  <strong>Instant thought capture for macOS.</strong><br>
-  Press a shortcut. Type your thought. Get back to work.<br>
-  Under 3 seconds. Every time.
-</p>
-
-<p align="center">
-  <a href="https://www.stik.ink?utm_source=github&utm_medium=readme&utm_campaign=nav_website">Website</a> &middot;
-  <a href="https://www.youtube.com/watch?v=eiMUVcojTng">Demo</a> &middot;
-  <a href="https://www.stik.ink/ideas?utm_source=github&utm_medium=readme&utm_campaign=nav_ideas">Ideas Board</a> &middot;
-  <a href="https://x.com/stik_app">X</a> &middot;
-  <a href="https://discord.gg/gG8vdCCRzW">Discord</a> &middot;
-  <a href="https://www.stik.ink/download?utm_source=github&utm_medium=readme&utm_campaign=nav_download">Download</a> &middot;
-  <a href="ROADMAP.md">Roadmap</a> &middot;
-  <a href="CHANGELOG.md">Changelog</a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/0xMassi/stik_app/releases/latest"><img src="https://shieldcn.dev/github/0xMassi/stik_app/release.svg?color=E8705F" alt="Latest release"></a>
-  <img src="https://shieldcn.dev/github/0xMassi/stik_app/license.svg" alt="License">
-  <img src="https://shieldcn.dev/badge/platform-macOS-000.svg?logo=apple" alt="macOS">
-  <a href="https://github.com/0xMassi/stik_app/releases"><img src="https://shieldcn.dev/github/downloads/0xMassi/stik_app.svg?color=E8705F" alt="Downloads"></a>
-  <a href="https://github.com/0xMassi/stik_app/stargazers"><img src="https://shieldcn.dev/github/0xMassi/stik_app/stars.svg?color=E8705F" alt="Stars"></a>
-</p>
-
-<p align="center">
-  <img src=".github/assets/hero.gif" width="600" alt="Stik demo">
-</p>
-
-<p align="center">
-  <a href="https://www.stik.ink/download?utm_source=github&utm_medium=readme&utm_campaign=hero_cta"><img src="https://shieldcn.dev/badge/Download_Stik_for_Mac-E8705F.svg?logo=apple&logoColor=white&size=lg" alt="Download Stik for Mac"></a>
-</p>
-
----
-
-## Why Stik?
-
-Every note app wants to be your second brain. Stik just wants to catch your thought before it disappears.
-
-No onboarding. No account. No sync setup. Hit `Cmd+Shift+S`, type, close. Your note is saved as a plain markdown file. That's it.
-
-## Install
-
-### Download for Mac
-
-Grab the latest `.dmg` from **[stik.ink/download](https://www.stik.ink/download?utm_source=github&utm_medium=readme&utm_campaign=install_primary)** — the recommended path, with release notes and a quick walkthrough.
-
-Prefer GitHub? The same `.dmg` is on the [Releases page](https://github.com/0xMassi/stik_app/releases/latest).
-
-### Homebrew
+Requirements: macOS 14+, Apple Silicon, Xcode 26+/Swift 6.2+, Rust stable, Node 20+, Bun 1.4.1, and `protoc`. Initialize the DarwinKit submodule and install the locked JavaScript dependencies:
 
 ```bash
-brew install --cask 0xMassi/stik/stik
-```
-
-Or add the tap first:
-
-```bash
-brew tap 0xMassi/stik
-brew install --cask stik
-```
-
-> Requires **macOS 14+ (Sonoma)**. On first launch, grant Accessibility permissions when prompted (needed for global shortcuts).
-
-### Update
-
-If you installed via Homebrew:
-
-```bash
-brew upgrade --cask stik
-```
-
-From v0.3.3 onwards, Stik includes a built-in auto-updater that silently downloads new versions in the background. Updates apply on next app restart.
-
-### Beta builds
-
-Every push to `develop` produces a signed build, published under [Releases](https://github.com/0xMassi/stik_app/releases) as a prerelease. It installs as **Stik Beta** beside your stable copy, and Settings shows a BETA pill next to the title so you always know which one you're in.
-
-A beta reads the same notes and settings as the stable app. Before you test anything destructive, send it somewhere harmless: Settings, Folders, Notes directory.
-
-Stable users never see these builds. Beta releases ship no updater artifacts and leave the update feed alone.
-
-## Features
-
-**Capture.** A global shortcut summons a floating post-it over whatever you're doing. Type, close, done. Every note lands in `~/Documents/Stik/` as markdown.
-
-**Voice.** `Cmd+Shift+D` transcribes speech straight into the note you're editing. `Cmd+Shift+V` opens a fresh post-it already listening. WhisperKit runs the model on the Neural Engine, so the audio never leaves your Mac.
-
-**Clip.** `Cmd+Shift+C` takes whatever text you've selected in Safari, Terminal, VS Code, or any standard text field and appends it to a Clips note. No copy, no paste, no window switching.
-
-**Organize.** Folders you name. Move a note with one keystroke. Search everything from the command palette.
-
-**Pin.** Park a note on your desktop as a floating sticky.
-
-**Rich editor.** Source-mode markdown with syntax highlighting, `==highlights==`, `[[wiki-links]]`, collapsible headings, image paste and drop, task lists, and editable tables. Type `/` for slash commands. Write your own templates in Settings. Vim mode if you want it.
-
-**Lock.** Encrypt a note with AES-256 and open it with Touch ID or your device password. Set an idle timeout, or relock everything when the Mac sleeps.
-
-**On-device AI.** Semantic search, folder suggestions, and note embeddings through Apple's NaturalLanguage framework. No cloud, no API keys, nothing sent anywhere.
-
-**Language.** English and Simplified Chinese (简体中文). Press `Cmd+Shift+,` and pick one from the first card in the Appearance tab. Every open window switches without a restart. Leave it on "Follow system language" and Stik reads your macOS setting.
-
-**Sync.** Turn on iCloud Drive in Settings and your notes reach your other Macs. Dropbox and Syncthing work too: point Stik at any folder they already watch.
-
-**Share.** Copy a note as rich text, markdown, or an image. Push a folder to a git remote and Stik keeps it synced in the background.
-
-**Import.** Pull notes out of Apple Notes from inside Stik. Nothing to export first.
-
-**Themes.** System, Light, Dark, or your own colors. Follows macOS appearance as it changes.
-
-**Remember.** A capture streak counts your daily habit. "On This Day" brings back notes from past years.
-
-## Keyboard Shortcuts
-
-All shortcuts are customizable in Settings.
-
-| Shortcut | Action |
-|----------|--------|
-| `Cmd+Shift+S` | Capture a new note |
-| `Cmd+Shift+D` | Start or stop dictation in the current note |
-| `Cmd+Shift+V` | New post-it, dictating from the start |
-| `Cmd+Shift+C` | Append the selected text from any app to Clips |
-| `Cmd+Shift+P` | Command palette (search + folders) |
-| `Cmd+Shift+M` | Command palette (alt shortcut) |
-| `Cmd+Shift+L` | Reopen last note |
-| `Cmd+.` | Zen mode |
-| `Cmd+Shift+,` | Open settings |
-
-## Your Data, Your Machine
-
-- Notes are **plain markdown files** in `~/Documents/Stik/` -- open them in any editor
-- All AI runs **on-device** via Apple frameworks -- nothing is sent anywhere
-- No account and no cloud service. Anonymous analytics are off by default and run only after you explicitly opt in; note content, titles, folders, and paths are never collected.
-- Settings stored locally in `~/.stik/`
-- Want sync? Just enable iCloud Drive for your Documents folder. Stik works automatically with iCloud, Dropbox, Syncthing, or anything that syncs `~/Documents`
-
-## Build from Source
-
-### Prerequisites
-
-- macOS 14+ (Sonoma)
-- [Xcode Command Line Tools](https://developer.apple.com/xcode/resources/) (`xcode-select --install`)
-- [Rust](https://rustup.rs/) stable
-- [Node.js](https://nodejs.org/) 20+
-- [Bun](https://bun.com/docs/installation) 1.4.1 (pinned in `.bun-version`)
-
-### Build
-
-```bash
-git clone --recurse-submodules https://github.com/0xMassi/stik_app.git
-cd stik_app
+git submodule update --init --recursive
 bun install --frozen-lockfile
-./scripts/build-dev.sh dev    # Development with hot reload
-./scripts/build-dev.sh build  # Local .app bundle for testing
 ```
 
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 19, TypeScript, Tailwind CSS, CodeMirror 6 |
-| Backend | Rust, Tauri 2.0 |
-| AI | DarwinKit (Swift CLI wrapping Apple NaturalLanguage framework) |
-| Storage | Local filesystem (`.md` files), optional git sync |
-
-## Contributing
-
-Contributions are welcome. Bun 1.4.1 is the canonical JavaScript package manager; keep `bun.lock` current and do not add a second lockfile. Node and Vitest remain the build-tool runtime and test runner. Please open an issue first to discuss what you'd like to change.
+Build the release app from the repository root:
 
 ```bash
-# Check Rust code
-cd src-tauri && cargo check
-
-# Format Rust code
-cd src-tauri && cargo fmt
-
-# Type check frontend
-bun run build
-
-# Run tests
-bun run test
-cd src-tauri && cargo test
+swift build --package-path src-tauri/darwinkit --configuration release --arch arm64
+install -m 755 \
+  "$(swift build --package-path src-tauri/darwinkit --configuration release --arch arm64 --show-bin-path)/darwinkit" \
+  src-tauri/binaries/darwinkit-aarch64-apple-darwin
+bun run tauri build --target aarch64-apple-darwin --bundles app \
+  --config '{"bundle":{"createUpdaterArtifacts":false}}'
 ```
 
-Maintainers preparing a stable build should follow the [release checklist](docs/release-checklist.md).
+Tauri's Rust strip helper may fail on some Xcode toolchains because its bundled `rust-objcopy` cannot load `libLLVM.dylib`. The build still completes; strip the two app executables with Apple's tool and re-sign the bundle:
 
-**Translations.** Every string lives in [`src/i18n/locales/`](src/i18n/locales/). Copy `en.ts`, translate the values, and add your locale to `LOCALES` in `src/i18n/index.ts`. The catalogue is typed against English, so a missing key breaks the build instead of shipping a blank label, and `bun run test` checks both catalogues for drift. Corrections to [`zh-CN.ts`](src/i18n/locales/zh-CN.ts) are welcome: read it top to bottom without opening a single component.
+```bash
+APP="src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Sidebar Notes.app"
+/usr/bin/strip -x -S "$APP/Contents/MacOS/stik" "$APP/Contents/MacOS/darwinkit"
+codesign --force --deep --sign - "$APP"
+```
 
-## Ideas Board
+The resulting bundle was 13,872 KiB on the tested Apple Silicon Mac. Verify the bundle before installing it:
 
-Got a feature idea or want to vote on what gets built next? Visit the **[Stik Ideas Board](https://www.stik.ink/ideas?utm_source=github&utm_medium=readme&utm_campaign=body_ideas)** -- sign in with GitHub, submit ideas, upvote your favorites, and discuss with the community. The roadmap is shaped by you.
+```bash
+codesign --verify --deep --strict --verbose=2 "$APP"
+open "$APP"
+```
 
-## Support
+To install locally, copy that `.app` into `/Applications` using Finder or `ditto`. Release app data is not isolated: it uses the normal user profile and `~/Documents/SideNotes/`. Use `./scripts/build-dev.sh qa` for isolated UI testing instead. Run `./scripts/verify.sh` for repository gates.
 
-Have a question, found a bug, or want to request a feature? Reach out at [massimianivalerio1@gmail.com](mailto:massimianivalerio1@gmail.com), join [Discord](https://discord.gg/gG8vdCCRzW), follow us on [X](https://x.com/stik_app), or [open an issue](https://github.com/0xMassi/stik_app/issues).
+## Data and compatibility
 
-## License
+- `Prompt/`, `Notes/`, and `Docs/` are real directories under the selected library root.
+- The app's CLI executable and Rust library retain their internal names (`stik` and `stik_lib`) for compatibility with the existing agent command and the inherited codebase. The Cargo package and user-facing product are named Sidebar Notes.
+- The original Stik library at `~/Documents/Stik/`, settings, and compatibility features remain separate from the Sidebar Notes library.
+- MIT terms and the upstream attribution are in [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
-[MIT](LICENSE)
+## Historical upstream documentation
 
----
-
-<p align="center">
-  Built by <a href="https://0xmassi.dev">Massi</a><br>
-  <sub>If Stik saves you time, consider leaving a star.</sub>
-</p>
+The upstream Stik README, security policy, and Homebrew template are archived in [docs/upstream/](docs/upstream/). The retained roadmap, mobile plan, changelog, and release checklist are labeled as historical. [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md) describe this fork.

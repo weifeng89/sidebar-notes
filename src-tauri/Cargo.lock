@@ -4205,6 +4205,45 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 
 [[package]]
+name = "sidebar-notes"
+version = "0.9.0"
+dependencies = [
+ "aes-gcm",
+ "arboard",
+ "base64 0.23.1",
+ "chrono",
+ "core-foundation 0.10.1",
+ "dirs",
+ "flate2",
+ "image",
+ "notify",
+ "notify-debouncer-mini",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-foundation",
+ "prost",
+ "prost-build",
+ "pulldown-cmark",
+ "rand 0.10.2",
+ "reqwest 0.12.28",
+ "rusqlite",
+ "security-framework",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-fs",
+ "tauri-plugin-global-shortcut",
+ "tauri-plugin-shell",
+ "tauri-plugin-updater",
+ "tempfile",
+ "toml 0.8.2",
+ "uuid",
+]
+
+[[package]]
 name = "sigchld"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4340,45 +4379,6 @@ name = "stable_deref_trait"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
-
-[[package]]
-name = "stik"
-version = "0.9.0"
-dependencies = [
- "aes-gcm",
- "arboard",
- "base64 0.23.1",
- "chrono",
- "core-foundation 0.10.1",
- "dirs",
- "flate2",
- "image",
- "notify",
- "notify-debouncer-mini",
- "objc2",
- "objc2-app-kit",
- "objc2-foundation",
- "prost",
- "prost-build",
- "pulldown-cmark",
- "rand 0.10.2",
- "reqwest 0.12.28",
- "rusqlite",
- "security-framework",
- "serde",
- "serde_json",
- "sha2",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-fs",
- "tauri-plugin-global-shortcut",
- "tauri-plugin-shell",
- "tauri-plugin-updater",
- "tempfile",
- "toml 0.8.2",
- "uuid",
-]
 
 [[package]]
 name = "string_cache"

@@ -1,4 +1,6 @@
-# Stik release checklist
+# Inherited Stik release checklist (historical)
+
+This upstream checklist describes Stik signing, notarization, updater, Homebrew, and Intel releases. It is retained as historical reference and is not the Sidebar Notes release procedure. See the [Sidebar Notes build instructions](../README.md#install-or-build).
 
 CI is reused by both build workflows: a failed quality/security job blocks beta
 publication and stable draft builds. Beta tags point to the exact tested SHA.

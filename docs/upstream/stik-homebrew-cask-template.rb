@@ -1,3 +1,9 @@
+# Archived upstream Stik Homebrew Cask template
+
+This template points to the upstream Stik repository and Intel downloads. It is retained for history only; Sidebar Notes does not publish a Homebrew Cask.
+
+---
+
 # Homebrew Cask Template for Stik
 #
 # Setup instructions:

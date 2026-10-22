@@ -1,8 +1,6 @@
 name: Release
 
 on:
-  release:
-    types: [published]
   push:
     tags:
       - 'v*'
@@ -46,7 +44,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-apple-darwin,x86_64-apple-darwin
+          targets: aarch64-apple-darwin
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -70,29 +68,14 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -k "" "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain
 
-      - name: Build DarwinKit sidecar (per-arch)
-        # Builds each architecture in a separate `swift build` invocation
-        # so we stay on native SwiftPM instead of `--arch arm64 --arch
-        # x86_64` which routes through Xcode's xcbuild. xcbuild on the
-        # current macos-latest runner (Xcode 16.4) can't parse the
-        # swift-collections 1.x `_RopeModule` manifest and exits non-zero
-        # even though the actual build succeeds. Native SwiftPM parses
-        # the same manifest fine, so splitting into two single-arch
-        # builds sidesteps the problem entirely. Each tauri-action step
-        # below only consumes one arch so there's no need to lipo them
-        # back together.
+      - name: Build DarwinKit sidecar (Apple Silicon)
         run: |
           cd src-tauri/darwinkit
           mkdir -p ../binaries
 
           swift build -c release --arch arm64
           cp .build/arm64-apple-macosx/release/darwinkit ../binaries/darwinkit-aarch64-apple-darwin
-
-          swift build -c release --arch x86_64
-          cp .build/x86_64-apple-macosx/release/darwinkit ../binaries/darwinkit-x86_64-apple-darwin
-
           file ../binaries/darwinkit-aarch64-apple-darwin
-          file ../binaries/darwinkit-x86_64-apple-darwin
 
       - name: Install protobuf compiler
         run: brew install protobuf
@@ -116,8 +99,8 @@ jobs:
         with:
           tauriScript: bun run tauri
           tagName: v__VERSION__
-          releaseName: 'Stik v__VERSION__'
-          releaseBody: 'See [CHANGELOG](https://github.com/0xMassi/stik_app/blob/main/CHANGELOG.md) for details.'
+          releaseName: 'Sidebar Notes v__VERSION__'
+          releaseBody: 'See the repository README for the Apple Silicon build and installation details.'
           releaseDraft: true
           prerelease: false
           # --bundles app,updater: skip tauri-bundler's bundle_dmg.sh
@@ -125,145 +108,40 @@ jobs:
           # current runner. We build the DMG ourselves in a later step.
           args: --target aarch64-apple-darwin --bundles app,updater
 
-      - name: Build and release (x86_64)
-        uses: tauri-apps/tauri-action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
-        with:
-          tauriScript: bun run tauri
-          tagName: v__VERSION__
-          releaseName: 'Stik v__VERSION__'
-          releaseDraft: true
-          prerelease: false
-          args: --target x86_64-apple-darwin --bundles app,updater
-
       - name: Build signed DMGs and upload to release
         # Tauri's bundle_dmg.sh / hdiutil / AppleScript pipeline keeps
         # flaking on the ephemeral macOS runner. Build DMGs ourselves
-        # with a single `hdiutil create` per arch: simple, deterministic,
+        # with a single `hdiutil create`: simple, deterministic,
         # fully visible in the logs. Each DMG is signed with the same
         # Developer ID identity the tauri-action step used and uploaded
-        # to the existing draft release so the downstream Homebrew step
-        # can find them via `gh release download --pattern "*.dmg"`.
+        # to this repository's draft release.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
 
-          for PAIR in "aarch64-apple-darwin:aarch64" "x86_64-apple-darwin:x64"; do
-            RUST_TARGET="${PAIR%%:*}"
-            DMG_ARCH="${PAIR##*:}"
-            APP_PATH="src-tauri/target/${RUST_TARGET}/release/bundle/macos/Stik.app"
-            DMG_NAME="Stik_${VERSION}_${DMG_ARCH}.dmg"
-            DMG_PATH="${RUNNER_TEMP}/${DMG_NAME}"
+          RUST_TARGET="aarch64-apple-darwin"
+          APP_PATH="src-tauri/target/${RUST_TARGET}/release/bundle/macos/Sidebar Notes.app"
+          DMG_NAME="Sidebar-Notes_${VERSION}_aarch64.dmg"
+          DMG_PATH="${RUNNER_TEMP}/${DMG_NAME}"
 
-            if [ ! -d "$APP_PATH" ]; then
-              echo "::error::Expected .app not found at $APP_PATH"
-              ls -la "$(dirname "$APP_PATH")" || true
-              exit 1
-            fi
-
-            echo "==> Creating $DMG_NAME from $APP_PATH"
-            hdiutil create \
-              -volname "Stik" \
-              -srcfolder "$APP_PATH" \
-              -ov -format UDZO \
-              "$DMG_PATH"
-
-            echo "==> Signing $DMG_NAME"
-            codesign --sign "$APPLE_SIGNING_IDENTITY" --timestamp "$DMG_PATH"
-            codesign --verify --verbose=2 "$DMG_PATH"
-
-            echo "==> Uploading $DMG_NAME to draft release"
-            gh release upload "v${VERSION}" "$DMG_PATH" --clobber
-          done
-
-  publish-distribution:
-    if: github.event_name == 'release' && !github.event.release.prerelease
-    runs-on: macos-14
-    permissions:
-      contents: read
-    env:
-      GH_REPO: ${{ github.repository }}
-    steps:
-      - name: Update Homebrew tap
-        if: success()
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-        run: |
-          set -euo pipefail
-          VERSION="${GITHUB_REF_NAME#v}"
-
-          # Only published assets may become Homebrew download targets.
-          GH_TOKEN="$GITHUB_TOKEN" gh release download "$GITHUB_REF_NAME" \
-            --pattern "*.dmg" --dir "$RUNNER_TEMP"
-          for ARCH in aarch64 x64; do
-            ASSET="$RUNNER_TEMP/Stik_${VERSION}_${ARCH}.dmg"
-            if [ ! -s "$ASSET" ]; then
-              echo "::error::Required release asset is missing or empty: $ASSET"
-              exit 1
-            fi
-          done
-          SHA_ARM=$(shasum -a 256 "$RUNNER_TEMP/Stik_${VERSION}_aarch64.dmg" | cut -d' ' -f1)
-          SHA_INTEL=$(shasum -a 256 "$RUNNER_TEMP/Stik_${VERSION}_x64.dmg" | cut -d' ' -f1)
-          if [[ ! "$SHA_ARM" =~ ^[[:xdigit:]]{64}$ || ! "$SHA_INTEL" =~ ^[[:xdigit:]]{64}$ ]]; then
-            echo "::error::Release asset checksums must be valid SHA-256 values"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "::error::Expected .app not found at $APP_PATH"
+            ls -la "$(dirname "$APP_PATH")" || true
             exit 1
           fi
 
-          # Generate updated cask formula
-          cat > "$RUNNER_TEMP/stik.rb" <<CASKEOF
-          cask "stik" do
-            arch arm: "aarch64", intel: "x64"
+          echo "==> Creating $DMG_NAME from $APP_PATH"
+          hdiutil create \
+            -volname "Sidebar Notes" \
+            -srcfolder "$APP_PATH" \
+            -ov -format UDZO \
+            "$DMG_PATH"
 
-            version "${VERSION}"
-            sha256 arm:   "${SHA_ARM}",
-                   intel: "${SHA_INTEL}"
+          echo "==> Signing $DMG_NAME"
+          codesign --sign "$APPLE_SIGNING_IDENTITY" --timestamp "$DMG_PATH"
+          codesign --verify --verbose=2 "$DMG_PATH"
 
-            url "https://github.com/0xMassi/stik_app/releases/download/v#{version}/Stik_#{version}_#{arch}.dmg"
-            name "Stik"
-            desc "Instant thought capture - one shortcut, post-it appears, type, close"
-            homepage "https://github.com/0xMassi/stik_app"
-
-            depends_on macos: :sonoma
-
-            app "Stik.app"
-
-            zap trash: [
-              "~/Documents/Stik",
-              "~/.stik",
-              "~/Library/Caches/com.stik.app",
-              "~/Library/WebKit/com.stik.app",
-            ]
-          end
-          CASKEOF
-
-          # Base64-encode the cask content
-          CONTENT=$(base64 -i "$RUNNER_TEMP/stik.rb")
-
-          # Get current file SHA from GitHub API (needed for update)
-          FILE_SHA=$(GH_TOKEN="$HOMEBREW_TAP_TOKEN" gh api repos/0xMassi/homebrew-stik/contents/Casks/stik.rb --jq '.sha')
-
-          # Push updated cask to tap repo
-          GH_TOKEN="$HOMEBREW_TAP_TOKEN" gh api repos/0xMassi/homebrew-stik/contents/Casks/stik.rb \
-            --method PUT \
-            -f message="Update Stik to v${VERSION}" \
-            -f sha="$FILE_SHA" \
-            -f content="$CONTENT"
-
-      - name: Trigger landing page rebuild
-        if: success()
-        env:
-          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
-        run: curl --fail --silent --show-error --max-time 30 -X POST "$VERCEL_DEPLOY_HOOK"
+          echo "==> Uploading $DMG_NAME to draft release"
+          gh release upload "v${VERSION}" "$DMG_PATH" --clobber

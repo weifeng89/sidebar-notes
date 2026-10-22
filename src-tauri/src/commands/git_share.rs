@@ -469,7 +469,7 @@ fn ensure_local_identity(repo_path: &Path) -> Result<(), String> {
     if git_config_value(repo_path, "user.name")?.is_none() {
         run_git_success(
             repo_path,
-            &["config", "user.name", "Stik"],
+            &["config", "user.name", "Sidebar Notes"],
             "set git user.name",
         )?;
     }

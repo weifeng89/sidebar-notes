@@ -79,7 +79,7 @@ fn assess_observation(observation: HealthObservation) -> VaultHealthReport {
         issues.push(issue(
             "vault_not_writable",
             "error",
-            "Stik cannot write to the configured vault.".to_string(),
+            "Sidebar Notes cannot write to the configured library.".to_string(),
             "Restore folder permissions or choose a writable notes location.",
         ));
     }
@@ -104,7 +104,7 @@ fn assess_observation(observation: HealthObservation) -> VaultHealthReport {
                 issues.push(issue(
                     "vault_scan_failed",
                     "warning",
-                    format!("Stik could not scan the vault: {error}"),
+                    format!("Sidebar Notes could not scan the library: {error}"),
                     "Retry the check. If it still fails, review folder permissions.",
                 ));
             }

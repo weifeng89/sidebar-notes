@@ -1,10 +1,10 @@
-# Agent interface: Mac-side CLI and pending remote access
+# Agent interface: Mac-side CLI and remote access
 
 The canonical library lives only on the Mac. Agents running on that Mac can use `stik cli` below. Agents on another machine use `scripts/sidebarnotes-remote.py`, which calls the Mac app's `remote` subcommand over SSH. The client keeps no library or cache on the remote machine. See [ADR 0003](adr/0003-agent-interface.md) for the trust boundary.
 
 ## Remote agents
 
-Copy `scripts/sidebarnotes-remote.py` to the agent machine and give it an SSH alias for the Mac. Install the current app bundle on the Mac at `/Applications/Sidebar Notes.app`, or set `SIDEBAR_NOTES_MAC_APP` to its actual executable path. Prefer a dedicated SSH key whose Mac `authorized_keys` entry uses OpenSSH's `restrict` and forced `command` options, with the forced command set to the app executable followed by `remote`. This key must not grant an ordinary shell. The Mac must allow SSH from the trusted private network; do not expose port 22 publicly. Keep private keys out of the repository and agent prompts.
+Copy `scripts/sidebarnotes-remote.py` to the agent machine and give it an SSH alias for the Mac. Install the current app bundle on the Mac at `/Applications/Sidebar Notes.app`, or set `SIDEBAR_NOTES_MAC_APP` to its actual executable path. Use a dedicated SSH key whose Mac `authorized_keys` entry uses OpenSSH's `restrict` and forced `command` options, with the forced command set to the app executable followed by `remote`. This key must not grant an ordinary shell. The Mac must allow SSH from the trusted private network; do not expose port 22 publicly. Keep private keys out of the repository and agent prompts.
 
 ```sh
 export SIDEBAR_NOTES_SSH_TARGET=sidebarnotes-mac

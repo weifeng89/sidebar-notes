@@ -1,7 +1,132 @@
 use crate::commands::sidebar_library as library;
+use serde::Deserialize;
 use serde_json::{json, Value};
-use std::io::Read;
+use std::io::{Read, Write};
 use std::path::Path;
+
+const MAX_HEADER_BYTES: usize = 8192;
+const MAX_NOTE_BYTES: u64 = 8 * 1024 * 1024;
+const MAX_ARTIFACT_BYTES: u64 = 512 * 1024 * 1024;
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RemoteRequest {
+    version: u8,
+    command: Vec<String>,
+    payload_bytes: u64,
+}
+
+fn remote_header(reader: &mut impl Read) -> Result<RemoteRequest, String> {
+    let mut header = Vec::new();
+    for _ in 0..MAX_HEADER_BYTES {
+        let mut byte = [0];
+        reader
+            .read_exact(&mut byte)
+            .map_err(|_| "Incomplete remote header")?;
+        if byte[0] == b'\n' {
+            let request: RemoteRequest =
+                serde_json::from_slice(&header).map_err(|_| "Invalid remote header")?;
+            if request.version != 1 {
+                return Err("Unsupported remote protocol version".into());
+            }
+            return Ok(request);
+        }
+        header.push(byte[0]);
+    }
+    Err("Remote header is too long".into())
+}
+
+fn remote_filename(name: &str) -> Result<(), String> {
+    if name.is_empty()
+        || name.len() > 255
+        || name.starts_with('.')
+        || name == "."
+        || name == ".."
+        || name.contains('/')
+        || name.contains('\\')
+        || name.chars().any(char::is_control)
+    {
+        return Err("Import requires a regular filename".into());
+    }
+    Ok(())
+}
+
+fn execute_remote(root: &Path, reader: &mut impl Read) -> Result<Value, String> {
+    let request = remote_header(reader)?;
+    let args: Vec<&str> = request.command.iter().map(String::as_str).collect();
+    match args.as_slice() {
+        ["save", relative, expected_revision] => {
+            if request.payload_bytes > MAX_NOTE_BYTES {
+                return Err("Remote note exceeds 8 MiB".into());
+            }
+            let mut content = vec![0; request.payload_bytes as usize];
+            reader
+                .read_exact(&mut content)
+                .map_err(|_| "Incomplete remote payload")?;
+            let content = String::from_utf8(content).map_err(|_| "Remote note must be UTF-8")?;
+            execute(root, &["save", relative, expected_revision], Some(&content))
+        }
+        ["import", name, folder, rest @ ..] if rest.len() <= 2 => {
+            remote_filename(name)?;
+            if request.payload_bytes > MAX_ARTIFACT_BYTES {
+                return Err("Remote artifact exceeds 512 MiB".into());
+            }
+            let staging = tempfile::tempdir().map_err(|e| e.to_string())?;
+            let source = staging.path().join(name);
+            let mut file = std::fs::File::create(&source).map_err(|e| e.to_string())?;
+            let copied = std::io::copy(&mut reader.take(request.payload_bytes), &mut file)
+                .map_err(|e| e.to_string())?;
+            if copied != request.payload_bytes {
+                return Err("Incomplete remote payload".into());
+            }
+            file.flush().map_err(|e| e.to_string())?;
+            drop(file);
+            serde_json::to_value(library::import_path(
+                root,
+                &source,
+                folder,
+                rest.first().copied().unwrap_or(""),
+                rest.get(1).copied(),
+            )?)
+            .map_err(|e| e.to_string())
+        }
+        ["list"]
+        | ["list", _]
+        | ["search", _]
+        | ["show", _]
+        | ["folders"]
+        | ["mkdir", _]
+        | ["create", _]
+            if request.payload_bytes == 0 =>
+        {
+            execute(root, &args, None)
+        }
+        _ => Err("Remote command or payload is not allowed".into()),
+    }
+}
+
+pub fn run_remote() -> i32 {
+    let outcome = crate::sidebar_log::trace("agent_remote", None, || {
+        execute_remote(&library::default_root()?, &mut std::io::stdin().lock())
+    });
+    match outcome {
+        Ok(value) => {
+            println!("{value}");
+            if value["status"] == "conflict" {
+                3
+            } else {
+                0
+            }
+        }
+        Err(message) => {
+            eprintln!(
+                "{}",
+                json!({"error_code":"remote_operation_failed","message":message})
+            );
+            2
+        }
+    }
+}
 
 const USAGE: &str = "Usage: stik cli [--json] <list [Prompt|Notes|Docs] | search QUERY | show RELATIVE_PATH | folders | mkdir FOLDER | create FOLDER | save RELATIVE_PATH EXPECTED_REVISION < CONTENT | import SOURCE_PATH DOCS_FOLDER [DESCRIPTION] [SOURCE_URL]>";
 
@@ -156,6 +281,60 @@ pub fn run_cli(args: &[String]) -> i32 {
 mod tests {
     use super::*;
     use tempfile::tempdir;
+
+    #[test]
+    fn remote_agent_uses_the_mac_library_for_reads_writes_and_conflicts() {
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("SideNotes");
+        let create = br#"{"version":1,"command":["create","Notes/Remote"],"payload_bytes":0}
+"#;
+        let created = execute_remote(&root, &mut create.as_slice()).unwrap();
+        let path = created["relative_path"].as_str().unwrap();
+        let show =
+            format!("{{\"version\":1,\"command\":[\"show\",\"{path}\"],\"payload_bytes\":0}}\n");
+        let opened = execute_remote(&root, &mut show.as_bytes()).unwrap();
+        let revision = opened["revision"].as_str().unwrap();
+        let body = b"# Remote note";
+        let save = format!("{{\"version\":1,\"command\":[\"save\",\"{path}\",\"{revision}\"],\"payload_bytes\":{}}}\n", body.len());
+        let request = [save.as_bytes(), body].concat();
+        assert_eq!(
+            execute_remote(&root, &mut request.as_slice()).unwrap()["status"],
+            "saved"
+        );
+        let stale_body = b"agent draft";
+        let stale_header = format!("{{\"version\":1,\"command\":[\"save\",\"{path}\",\"{revision}\"],\"payload_bytes\":{}}}\n", stale_body.len());
+        let stale = [stale_header.as_bytes(), stale_body].concat();
+        let conflict = execute_remote(&root, &mut stale.as_slice()).unwrap();
+        assert_eq!(conflict["status"], "conflict");
+        assert_eq!(
+            std::fs::read_to_string(root.join(conflict["copy"].as_str().unwrap())).unwrap(),
+            "agent draft"
+        );
+        assert_eq!(
+            std::fs::read_to_string(root.join(path)).unwrap(),
+            "# Remote note"
+        );
+        let truncated = [stale_header.as_bytes(), b"short"].concat();
+        assert!(execute_remote(&root, &mut truncated.as_slice()).is_err());
+    }
+
+    #[test]
+    fn remote_agent_streams_artifact_bytes_without_a_remote_path_on_the_mac() {
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("SideNotes");
+        let body = b"%PDF-remote";
+        let header = format!("{{\"version\":1,\"command\":[\"import\",\"deck.pdf\",\"Docs/Client\",\"Handoff\"],\"payload_bytes\":{}}}\n", body.len());
+        let request = [header.as_bytes(), body].concat();
+        let result = execute_remote(&root, &mut request.as_slice()).unwrap();
+        assert_eq!(result[0]["relative_path"], "Docs/Client/deck.pdf");
+        assert_eq!(
+            std::fs::read(root.join("Docs/Client/deck.pdf")).unwrap(),
+            body
+        );
+        let invalid = br#"{"version":1,"command":["import","/etc/passwd","Docs"],"payload_bytes":0}
+"#;
+        assert!(execute_remote(&root, &mut invalid.as_slice()).is_err());
+    }
 
     #[test]
     fn agent_can_create_find_and_read_a_markdown_note() {

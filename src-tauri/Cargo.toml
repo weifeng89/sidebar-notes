@@ -37,6 +37,7 @@ flate2 = "1"
 prost = "0.14"
 aes-gcm = "0.11"
 rand = "0.10"
+tempfile = "3"
 notify = { version = "7", default-features = false, features = ["macos_fsevent"] }
 notify-debouncer-mini = "0.5"
 
@@ -54,9 +55,6 @@ objc2-foundation = { version = "0.3.2", default-features = false, features = ["N
 # vite dev server is used. Our dev-rebuild.sh passes it explicitly via
 # `cargo build --features custom-protocol` because it bypasses tauri-cli.
 custom-protocol = ["tauri/custom-protocol"]
-
-[dev-dependencies]
-tempfile = "3"
 
 [profile.release]
 panic = "abort"

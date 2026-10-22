@@ -10,5 +10,6 @@ mod tray;
 mod windows;
 
 pub use agent_cli::run_cli;
+pub use agent_cli::run_remote;
 pub use app::run;
 pub use commands::*;

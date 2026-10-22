@@ -29,7 +29,7 @@ Built and installed the Apple Silicon release bundle from the final working tree
 | --- | --- | --- |
 | Product identity | Pass | Installed bundle identifier is `com.weifeng89.sidebarnotes`, display name and webview metadata are Sidebar Notes. |
 | Library initialization | Pass | Confirmed `~/Documents/SideNotes/Prompt`, `Notes`, and `Docs`. |
-| Bookmark UI and sizing | Pass | Installed app showed Prompt / Notes / Artifacts bookmarks; collapsed bookmark state rendered; expanded content was 320 CSS px wide at 2x display scale. |
+| Bookmark UI and sizing | Pass | Installed app showed Prompt / Notes / Artifacts bookmarks; after collapsing and relaunching, it reopened in the three-bookmark state. Expanded content was 320 CSS px wide at 2x display scale. |
 | Esc collapse | Pass | Expanded sidebar collapsed to the three bookmarks. |
 | ⌘⇧E and ⌘⇧N | Unverified | Registration log reports both shortcuts registered successfully. CUA key injection did not activate either action, so real keyboard delivery remains unverified. |
 | New note persistence | Pass via UI button | Created a Markdown note and verified a zero-byte `.md` appeared immediately under `Notes/`; removed it through the app and confirmed it was in `~/.Trash`. The shortcut-specific path remains unverified above. |

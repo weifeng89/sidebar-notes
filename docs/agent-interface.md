@@ -1,4 +1,6 @@
-# Local agent interface
+# Agent interface: Mac-side CLI and pending remote access
+
+The commands below currently run on the Mac. Remote access for Hermes or another machine is **not implemented or verified yet**. The canonical library lives only on the Mac; a remote machine must not initialize a local copy. See [ADR 0003](adr/0003-agent-interface.md) for the required SSH transport and remote acceptance gate.
 
 Run the app executable with `cli`. For a development build, replace `APP` with the absolute path to `stik` inside the built `.app/Contents/MacOS/` directory. The production bundle will document its executable path when packaged.
 

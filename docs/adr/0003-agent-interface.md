@@ -1,12 +1,18 @@
-# 0003: Start with a local CLI for agents
+# 0003: Remote agents use the Mac library through a CLI
 
 ## Decision
 
-Sidebar Notes exposes a small local CLI before adding an MCP server. It is a `cli` subcommand of the app executable, so packaging adds no second runtime. The CLI uses the same file operations and conflict rules as the UI. MCP may later be a thin adapter over these operations, with no separate storage or write policy.
+Sidebar Notes exposes one library on Wei's Mac. Agents running on the Mac or another machine must use the same CLI operations against that Mac library. The current `cli` subcommand is the Mac-side operation layer; remote access to it is a separate, required product capability. An agent on the homelab must not create or sync its own Sidebar Notes library. MCP is not required.
 
 ## Why
 
-The library is local, single-user, and already uses ordinary files. Codex, Cursor, Claude Code, and terminal scripts can all run commands; a CLI is easy to inspect, repeat, test, and use when the app is closed. An MCP server becomes useful when a target agent client needs discoverable typed tools or resources, but adds packaging, connection, and permission behavior before the real workflows have been validated.
+The library is local to one Mac and already uses ordinary files. A remote CLI lets Hermes access that single source of truth without adding another database or a background sync protocol. The Mac-side CLI remains useful when the app UI is closed.
+
+## Remote transport and trust boundary
+
+Use authenticated SSH over the existing private network to invoke the packaged CLI on the Mac. Supply a stable remote client command for agents; keep all library path resolution and writes on the Mac. Restrict the SSH identity to the Sidebar Notes command surface rather than granting a general-purpose shell. Do not add an HTTP listener, cloud replica, or second writable library. Remote access must be explicitly enabled and tested from the homelab before it is called delivered.
+
+Remote `save` sends complete Markdown through standard input and preserves the existing expected-revision conflict rule. Remote artifact import must transfer the original bytes to the Mac and then import there; a path that exists only on the homelab cannot be passed to the Mac-side `import SOURCE_PATH` command. The transfer must be bounded and validated, and failed transfers must not leave partial library files.
 
 ## Initial contract
 
@@ -19,8 +25,8 @@ The library is local, single-user, and already uses ordinary files. Codex, Curso
 
 ## Gate for MCP
 
-Add a local stdio MCP adapter only after two real agent workflows use the CLI successfully: find a prior prompt or artifact, and archive a new artifact with source information and later retrieve it. The adapter should offer the same operations as tools and read-only note/artifact content as resources. Do not add HTTP listening or cloud synchronization for this product.
+No MCP adapter is planned. Revisit only if an actual agent cannot use the remote CLI.
 
 ## Open implementation gate
 
-The CLI must be packaged within the macOS app's size target (20 MB) and operate without launching the UI. Measure the packaged size before committing to a separate binary; if it exceeds the target, reuse the app executable with CLI subcommands.
+The Mac-side CLI is packaged and operates without launching the UI. Remote delivery additionally requires a stable client command, restricted authentication, a Mac reachability check, streaming artifact import, and end-to-end read/write/conflict tests from the homelab against an isolated Mac test library. The production library must not be used for unattended acceptance tests.

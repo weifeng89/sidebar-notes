@@ -11,7 +11,7 @@ The original Stik project and MIT license are retained. The upstream README foll
 ---
 
 <p align="center">
-  <img src="app-icon.svg" width="128" height="128" alt="Stik icon">
+  <img src="app-icon.svg" width="128" height="128" alt="Sidebar Notes icon">
 </p>
 
 <h1 align="center">Stik</h1>

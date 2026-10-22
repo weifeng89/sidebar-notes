@@ -1,8 +1,15 @@
-<svg viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Shadow -->
-  <path d="M20 28a10 10 0 0 1 10-10h50l36 36v58a10 10 0 0 1-10 10H30a10 10 0 0 1-10-10V28z" fill="#1A1A1A" fill-opacity="0.1"/>
-  <!-- Body -->
-  <path d="M16 22a10 10 0 0 1 10-10h50l36 36v58a10 10 0 0 1-10 10H26a10 10 0 0 1-10-10V22z" fill="#E8705F"/>
-  <!-- Fold -->
-  <path d="M76 12l36 36H86a10 10 0 0 1-10-10V12z" fill="#D6604F"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Sidebar Notes logo A: three living bookmarks">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFF8EA"/><stop offset="1" stop-color="#EADDCB"/></linearGradient>
+    <filter id="s"><feDropShadow dx="0" dy="22" stdDeviation="22" flood-color="#56362E" flood-opacity=".23"/></filter>
+  </defs>
+  <rect x="34" y="34" width="956" height="956" rx="218" fill="url(#bg)"/>
+  <g filter="url(#s)">
+    <path d="M170 222c0-39 31-70 70-70h182c39 0 70 31 70 70v610L331 727 170 832Z" fill="#E8705F"/>
+    <path d="M344 262c0-39 31-70 70-70h181c39 0 70 31 70 70v570L505 727 344 832Z" fill="#72B5A2"/>
+    <path d="M518 302c0-39 31-70 70-70h178c39 0 70 31 70 70v530L677 727 518 832Z" fill="#6B5A8C"/>
+  </g>
+  <path d="M236 328h116" stroke="#FFF7EB" stroke-width="31" stroke-linecap="round"/>
+  <path d="M410 368h116" stroke="#F1FFF6" stroke-width="31" stroke-linecap="round"/>
+  <path d="M584 408h116" stroke="#F7F0FF" stroke-width="31" stroke-linecap="round"/>
 </svg>

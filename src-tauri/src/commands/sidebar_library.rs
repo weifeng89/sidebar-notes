@@ -229,6 +229,23 @@ mod tests {
         );
     }
 
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn interrupted_save_exposes_hidden_external_version() {
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("SideNotes");
+        initialize(&root).unwrap();
+        let original = root.join("Notes/idea.md");
+        fs::write(&original, "draft").unwrap();
+        let hidden = root.join("Notes/.idea.md.displaced.tmp");
+        fs::write(&hidden, "external version").unwrap();
+        expose_hidden_conflict(&root, &original, &hidden).unwrap();
+        assert!(!hidden.exists());
+        let rows = list(&root, Some("Notes"), Some("external version")).unwrap();
+        assert_eq!(rows.len(), 1);
+        assert!(rows[0].name.contains("external-conflict"));
+    }
+
     #[test]
     fn paths_cannot_leave_the_library_or_follow_a_symlink() {
         let temp = tempdir().unwrap();
@@ -762,33 +779,74 @@ pub fn save_note(
     }
     #[cfg(target_os = "macos")]
     {
-        let displaced = super::storage::atomic_swap(&path, content.as_bytes())?;
-        if !fs::symlink_metadata(&displaced)
-            .map_err(|e| e.to_string())?
-            .file_type()
-            .is_file()
-        {
-            return Err("Note changed to a non-regular file during save".into());
+        // Reserve a visible draft before publication so every later failure
+        // still leaves the user's edited version easy to find.
+        let draft_copy = write_conflict_copy(&path, content.as_bytes())?;
+        let displaced = match super::storage::atomic_swap(&path, content.as_bytes()) {
+            Ok(path) => path,
+            Err(error) => {
+                let _ = fs::remove_file(draft_copy);
+                return Err(error);
+            }
+        };
+        if !fs::symlink_metadata(&displaced).is_ok_and(|meta| meta.file_type().is_file()) {
+            expose_hidden_conflict(root, &path, &displaced)?;
+            return Ok(SaveOutcome::Conflict {
+                copy: relative_string(root, &draft_copy)?,
+            });
         }
-        let displaced_bytes = fs::read(&displaced).map_err(|e| e.to_string())?;
+        let displaced_bytes = match fs::read(&displaced) {
+            Ok(bytes) => bytes,
+            Err(_) => {
+                expose_hidden_conflict(root, &path, &displaced)?;
+                invalidate_index(root);
+                return Ok(SaveOutcome::Conflict {
+                    copy: relative_string(root, &draft_copy)?,
+                });
+            }
+        };
         if revision(&displaced_bytes) != expected_revision {
             // The external writer won after our first read. Keep the draft as a
             // visible conflict file, restore the displaced version atomically,
             // and also retain any third write that landed during restoration.
-            let copy = write_conflict_copy(&path, content.as_bytes())?;
-            let replaced = super::storage::atomic_swap(&path, &displaced_bytes)?;
-            let replaced_bytes = fs::read(&replaced).map_err(|e| e.to_string())?;
+            let replaced = match super::storage::atomic_swap(&path, &displaced_bytes) {
+                Ok(path) => path,
+                Err(_) => {
+                    expose_hidden_conflict(root, &path, &displaced)?;
+                    invalidate_index(root);
+                    return Ok(SaveOutcome::Conflict {
+                        copy: relative_string(root, &draft_copy)?,
+                    });
+                }
+            };
+            let replaced_bytes = match fs::read(&replaced) {
+                Ok(bytes) => bytes,
+                Err(_) => {
+                    expose_hidden_conflict(root, &path, &replaced)?;
+                    let _ = fs::remove_file(displaced);
+                    invalidate_index(root);
+                    return Ok(SaveOutcome::Conflict {
+                        copy: relative_string(root, &draft_copy)?,
+                    });
+                }
+            };
             if replaced_bytes != content.as_bytes() {
-                let _ = write_conflict_copy(&path, &replaced_bytes)?;
+                if write_conflict_copy(&path, &replaced_bytes).is_err() {
+                    expose_hidden_conflict(root, &path, &replaced)?;
+                } else {
+                    let _ = fs::remove_file(&replaced);
+                }
+            } else {
+                let _ = fs::remove_file(&replaced);
             }
-            fs::remove_file(replaced).map_err(|e| e.to_string())?;
-            fs::remove_file(displaced).map_err(|e| e.to_string())?;
+            let _ = fs::remove_file(displaced);
             invalidate_index(root);
             return Ok(SaveOutcome::Conflict {
-                copy: relative_string(root, &copy)?,
+                copy: relative_string(root, &draft_copy)?,
             });
         }
-        fs::remove_file(displaced).map_err(|e| e.to_string())?;
+        let _ = fs::remove_file(displaced);
+        let _ = fs::remove_file(draft_copy);
     }
     #[cfg(not(target_os = "macos"))]
     super::storage::atomic_write(
@@ -799,6 +857,19 @@ pub fn save_note(
     Ok(SaveOutcome::Saved {
         revision: revision(content.as_bytes()),
     })
+}
+
+#[cfg(target_os = "macos")]
+fn expose_hidden_conflict(root: &Path, original: &Path, hidden: &Path) -> Result<(), String> {
+    let parent = original.parent().ok_or("Note has no parent folder")?;
+    let stem = original.file_stem().unwrap_or_default().to_string_lossy();
+    let visible = unique_path(parent, &format!("{stem}-external-conflict.md"));
+    fs::rename(hidden, &visible).map_err(|_| {
+        let relative = relative_string(root, hidden).unwrap_or_else(|_| "hidden conflict".into());
+        format!("Could not expose external version; recover library-relative file {relative}")
+    })?;
+    invalidate_index(root);
+    Ok(())
 }
 
 fn write_conflict_copy(path: &Path, data: &[u8]) -> Result<PathBuf, String> {

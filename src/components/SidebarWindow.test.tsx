@@ -1,12 +1,14 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { invoke } from "@tauri-apps/api/core";
 import SidebarWindow from "./SidebarWindow";
 
+let dropHandler: ((event: { payload: { type: string; paths: string[] } }) => void) | undefined;
+
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) }));
 vi.mock("@tauri-apps/api/window", () => ({
-  getCurrentWindow: () => ({ onDragDropEvent: async () => () => {} }),
+  getCurrentWindow: () => ({ onDragDropEvent: async (handler: typeof dropHandler) => { dropHandler = handler; return () => {}; } }),
 }));
 vi.mock("./Editor", () => ({
   default: ({ initialContent, onChange }: { initialContent: string; onChange: (value: string) => void }) => <textarea aria-label="Markdown 编辑器" defaultValue={initialContent} onChange={(event) => onChange(event.target.value)} />,
@@ -22,6 +24,7 @@ const artifact = {
 };
 
 beforeEach(() => {
+  dropHandler = undefined;
   vi.mocked(invoke).mockReset().mockImplementation(async (command, args) => {
     if (command === "sidebar_list") {
       return (args as { category: string }).category === "Prompt" ? [prompt] :
@@ -31,6 +34,7 @@ beforeEach(() => {
     if (command === "sidebar_save_note") return { status: "saved", revision: "v2" };
     if (command === "sidebar_get_state") return { side: "right", mode: "collapsed" };
     if (command === "sidebar_list_folders") return ["Prompt/GTM", "Docs/GTM"];
+    if (command === "sidebar_import_candidates") return (args as { paths: string[] }).paths.map((path) => ({ source_path: path, relative_folder: "" }));
     return null;
   });
 });
@@ -102,5 +106,44 @@ describe("Sidebar Notes user journey", () => {
     await waitFor(() => expect(invoke).toHaveBeenCalledWith("sidebar_save_note", expect.objectContaining({
       content: "newer draft", expectedRevision: "v2",
     })));
+  });
+
+  it("confirms description and source separately for each dropped artifact", async () => {
+    render(<SidebarWindow />);
+    await waitFor(() => expect(dropHandler).toBeDefined());
+    dropHandler?.({ payload: { type: "drop", paths: ["/tmp/first.pdf", "/tmp/second.pdf"] } });
+    expect(await screen.findByText(/first\.pdf/)).toBeTruthy();
+    fireEvent.change(screen.getByRole("textbox", { name: "说明便签" }), { target: { value: "First description" } });
+    fireEvent.click(within(screen.getByRole("dialog", { name: "保存交付物" })).getByRole("button", { name: /Artifacts/ }));
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("sidebar_import_file", expect.objectContaining({ sourcePath: "/tmp/first.pdf", description: "First description" })));
+    expect(await screen.findByText(/second\.pdf/)).toBeTruthy();
+    fireEvent.change(screen.getByRole("textbox", { name: "说明便签" }), { target: { value: "Second description" } });
+    fireEvent.click(within(screen.getByRole("dialog", { name: "保存交付物" })).getByRole("button", { name: /Artifacts/ }));
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("sidebar_import_file", expect.objectContaining({ sourcePath: "/tmp/second.pdf", description: "Second description" })));
+  });
+
+  it("opens the first search hit with Enter", async () => {
+    render(<SidebarWindow />);
+    fireEvent.click(await screen.findByRole("button", { name: "展开 Prompt" }));
+    const search = await screen.findByRole("textbox", { name: "搜索标题与正文" });
+    fireEvent.change(search, { target: { value: "GTM" } });
+    fireEvent.keyDown(search, { key: "Enter" });
+    expect(await screen.findByRole("textbox", { name: "Markdown 编辑器" })).toBeTruthy();
+  });
+
+  it("moves a selected note to the system Trash", async () => {
+    render(<SidebarWindow />);
+    fireEvent.click(await screen.findByRole("button", { name: "展开 Prompt" }));
+    fireEvent.click(await screen.findByText("gtm.md"));
+    fireEvent.click(await screen.findByRole("button", { name: "移到废纸篓" }));
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("sidebar_trash_item", { relativePath: "Prompt/GTM/gtm.md" }));
+  });
+
+  it("folds back to bookmarks with Escape", async () => {
+    render(<SidebarWindow />);
+    fireEvent.click(await screen.findByRole("button", { name: "展开 Notes" }));
+    await screen.findByRole("button", { name: "折叠侧边栏" });
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("sidebar_set_mode", { mode: "collapsed" }));
   });
 });

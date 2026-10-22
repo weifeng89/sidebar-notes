@@ -3,7 +3,7 @@ use serde_json::{json, Value};
 use std::io::Read;
 use std::path::Path;
 
-const USAGE: &str = "Usage: stik cli [--json] <list [Prompt|Notes|Docs] | search QUERY | show RELATIVE_PATH | folders | create FOLDER | save RELATIVE_PATH EXPECTED_REVISION < CONTENT | import SOURCE_PATH DOCS_FOLDER [DESCRIPTION] [SOURCE_URL]>";
+const USAGE: &str = "Usage: stik cli [--json] <list [Prompt|Notes|Docs] | search QUERY | show RELATIVE_PATH | folders | mkdir FOLDER | create FOLDER | save RELATIVE_PATH EXPECTED_REVISION < CONTENT | import SOURCE_PATH DOCS_FOLDER [DESCRIPTION] [SOURCE_URL]>";
 
 fn execute(root: &Path, args: &[&str], stdin: Option<&str>) -> Result<Value, String> {
     library::initialize(root)?;
@@ -19,6 +19,7 @@ fn execute(root: &Path, args: &[&str], stdin: Option<&str>) -> Result<Value, Str
         ["folders"] => {
             serde_json::to_value(library::list_folders(root)?).map_err(|e| e.to_string())
         }
+        ["mkdir", folder] => Ok(json!({"folder": library::create_folder(root, folder)?})),
         ["show", relative] => {
             let item = library::list(root, None, None)?
                 .into_iter()
@@ -26,9 +27,10 @@ fn execute(root: &Path, args: &[&str], stdin: Option<&str>) -> Result<Value, Str
                 .ok_or("Library item not found")?;
             if item.is_markdown {
                 let note = library::read_note(root, relative)?;
-                Ok(
-                    json!({"relative_path": relative, "content": note.content, "revision": note.revision}),
-                )
+                let mut value = serde_json::to_value(item).map_err(|e| e.to_string())?;
+                value["content"] = json!(note.content);
+                value["revision"] = json!(note.revision);
+                Ok(value)
             } else {
                 serde_json::to_value(item).map_err(|e| e.to_string())
             }
@@ -98,7 +100,9 @@ pub fn run_cli(args: &[String]) -> i32 {
         }
     }
     let relative = match values.as_slice() {
-        ["show" | "save", path, ..] | ["create", path] | ["import", _, path, ..] => Some(*path),
+        ["show" | "save", path, ..] | ["create" | "mkdir", path] | ["import", _, path, ..] => {
+            Some(*path)
+        }
         _ => None,
     };
     let outcome = crate::sidebar_log::trace(
@@ -215,11 +219,44 @@ mod tests {
         )
         .unwrap();
         assert_eq!(imported[0]["relative_path"], "Docs/GTM/deck.pdf");
+        assert_eq!(imported[0]["description"], "Launch deck");
         assert_eq!(
             std::fs::read(root.join("Docs/GTM/deck.pdf")).unwrap(),
             b"%PDF-test"
         );
         assert!(execute(&root, &["show", "../../outside.md"], None).is_err());
         assert!(execute(&root, &["create", "Notes/../../outside"], None).is_err());
+    }
+
+    #[test]
+    fn showing_an_imported_markdown_returns_content_and_artifact_metadata() {
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("SideNotes");
+        let source = temp.path().join("handoff.md");
+        std::fs::write(&source, "# Handoff").unwrap();
+        execute(
+            &root,
+            &[
+                "import",
+                source.to_str().unwrap(),
+                "Docs/Client",
+                "Final version",
+            ],
+            None,
+        )
+        .unwrap();
+        let shown = execute(&root, &["show", "Docs/Client/handoff.md"], None).unwrap();
+        assert_eq!(shown["description"], "Final version");
+        assert_eq!(shown["is_artifact"], true);
+        assert_eq!(shown["content"], "# Handoff");
+    }
+
+    #[test]
+    fn agent_can_create_an_empty_project_directory() {
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("SideNotes");
+        let result = execute(&root, &["mkdir", "Prompt/Client A"], None).unwrap();
+        assert_eq!(result["folder"], "Prompt/Client A");
+        assert!(root.join("Prompt/Client A").is_dir());
     }
 }

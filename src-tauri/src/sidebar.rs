@@ -1,6 +1,9 @@
 use crate::commands::sidebar_library;
 use serde::{Deserialize, Serialize};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Mutex, OnceLock,
+};
 use tauri::{
     AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Position, Size, WebviewUrl,
     WebviewWindowBuilder,
@@ -131,12 +134,40 @@ fn apply(app: &AppHandle, value: &SidebarState) -> Result<(), String> {
         .get_webview_window("sidebar")
         .ok_or("Sidebar is not open")?;
     let (x, y, w, h) = geometry(app, value)?;
-    window
-        .set_size(Size::Logical(LogicalSize::new(w, h)))
-        .map_err(|e| e.to_string())?;
-    window
-        .set_position(Position::Logical(LogicalPosition::new(x, y)))
-        .map_err(|e| e.to_string())?;
+    static GEOMETRY_EPOCH: AtomicU64 = AtomicU64::new(0);
+    let epoch = GEOMETRY_EPOCH.fetch_add(1, Ordering::SeqCst) + 1;
+    let scale = window.scale_factor().map_err(|e| e.to_string())?;
+    let current_size = window.inner_size().map_err(|e| e.to_string())?;
+    let current_position = window.outer_position().map_err(|e| e.to_string())?;
+    let start = (
+        current_position.x as f64 / scale,
+        current_position.y as f64 / scale,
+        current_size.width as f64 / scale,
+        current_size.height as f64 / scale,
+    );
+    let target = (x, y, w, h);
+    let moving = window.clone();
+    std::thread::spawn(move || {
+        for frame in 1..=10 {
+            if GEOMETRY_EPOCH.load(Ordering::SeqCst) != epoch {
+                return;
+            }
+            let progress = frame as f64 / 10.0;
+            let ease = 1.0 - (1.0 - progress).powi(3);
+            let next = |from: f64, to: f64| from + (to - from) * ease;
+            let _ = moving.set_size(Size::Logical(LogicalSize::new(
+                next(start.2, target.2),
+                next(start.3, target.3),
+            )));
+            let _ = moving.set_position(Position::Logical(LogicalPosition::new(
+                next(start.0, target.0),
+                next(start.1, target.1),
+            )));
+            if frame < 10 {
+                std::thread::sleep(std::time::Duration::from_millis(16));
+            }
+        }
+    });
     let _ = window.emit("sidebar-state", value);
     Ok(())
 }

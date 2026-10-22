@@ -24,6 +24,13 @@ if (configuredVersion !== expectedVersion) {
   );
 }
 
+const capability = JSON.parse(
+  await readFile("src-tauri/capabilities/default.json", "utf8"),
+);
+if (!capability.windows?.includes("sidebar") || !capability.permissions?.includes("core:event:default")) {
+  failures.push("src-tauri/capabilities/default.json: sidebar must be allowed to listen for file and state events");
+}
+
 await Promise.all([
   requireText(
     "src-tauri/darwinkit/Package.swift",

@@ -14,7 +14,9 @@ use crate::windows::{
     self, show_command_palette, show_editor, show_postit_with_folder, show_settings,
 };
 use tauri::{AppHandle, Emitter, Manager, RunEvent};
-use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
+use tauri_plugin_global_shortcut::ShortcutState;
+#[cfg(debug_assertions)]
+use tauri_plugin_global_shortcut::{Code, Modifiers};
 
 fn folder_for_opened_note(path: &std::path::Path, stik_root: &std::path::Path) -> String {
     path.strip_prefix(stik_root)
@@ -649,7 +651,9 @@ pub fn run() {
             sidebar_library::sidebar_save_note,
             sidebar_library::sidebar_create_note,
             sidebar_library::sidebar_create_folder,
+            sidebar_library::sidebar_import_candidates,
             sidebar_library::sidebar_import_file,
+            sidebar_library::sidebar_trash_item,
             sidebar_library::sidebar_open_file,
             sidebar_library::sidebar_show_in_finder,
             sidebar_library::sidebar_open_source,
@@ -778,11 +782,6 @@ pub fn run() {
             }
 
             start_deferred_services(app.handle().clone(), startup_plan);
-            if dev_session {
-                // The empty capture window auto-hides on blur, leaving native
-                // QA connectors without a window to address. Keep QA visible.
-                show_editor(app.handle());
-            }
             eprintln!(
                 "[startup] capture-critical setup completed in {} ms",
                 setup_started.elapsed().as_millis()

@@ -125,7 +125,7 @@ pub fn icloud_available() -> bool {
 // this tree, so notes go out temp-file-then-rename — the same shape the JSON
 // stores already use.
 
-fn atomic_write(path: &str, data: &[u8]) -> Result<(), String> {
+pub(crate) fn atomic_write(path: &str, data: &[u8]) -> Result<(), String> {
     let target = Path::new(path);
     let dir = target
         .parent()
@@ -155,6 +155,71 @@ fn atomic_write(path: &str, data: &[u8]) -> Result<(), String> {
     if result.is_err() {
         let _ = fs::remove_file(&tmp);
     }
+    result
+}
+
+/// Atomically exchange a complete replacement with an existing macOS file.
+/// The returned hidden path contains the exact bytes displaced at publication.
+#[cfg(target_os = "macos")]
+pub(crate) fn atomic_swap(path: &Path, data: &[u8]) -> Result<PathBuf, String> {
+    use std::ffi::CString;
+    use std::os::unix::ffi::OsStrExt;
+
+    unsafe extern "C" {
+        fn renamex_np(src: *const i8, dst: *const i8, flags: u32) -> i32;
+    }
+    const RENAME_SWAP: u32 = 0x0000_0002;
+    let dir = path.parent().ok_or("File has no parent directory")?;
+    let name = path
+        .file_name()
+        .ok_or("File has no name")?
+        .to_string_lossy();
+    let tmp = dir.join(format!(".{name}.{}.tmp", uuid::Uuid::new_v4()));
+    let mut options = fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    use std::os::unix::fs::OpenOptionsExt;
+    options.mode(0o600);
+    let result = (|| {
+        let mut file = options.open(&tmp).map_err(|e| e.to_string())?;
+        file.write_all(data).map_err(|e| e.to_string())?;
+        file.sync_all().map_err(|e| e.to_string())?;
+        drop(file);
+        let src = CString::new(tmp.as_os_str().as_bytes()).map_err(|e| e.to_string())?;
+        let dst = CString::new(path.as_os_str().as_bytes()).map_err(|e| e.to_string())?;
+        if unsafe { renamex_np(src.as_ptr(), dst.as_ptr(), RENAME_SWAP) } != 0 {
+            return Err(std::io::Error::last_os_error().to_string());
+        }
+        Ok(tmp.clone())
+    })();
+    if result.is_err() {
+        let _ = fs::remove_file(&tmp);
+    }
+    result
+}
+
+/// Publish a new file only after its entire content is on disk. A hard link
+/// makes publication atomic and refuses to replace an existing destination.
+pub(crate) fn atomic_create(path: &Path, source: &mut impl std::io::Read) -> Result<(), String> {
+    let dir = path.parent().ok_or("File has no parent directory")?;
+    let name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or("Invalid filename")?;
+    let tmp = dir.join(format!(".{name}.{}.tmp", uuid::Uuid::new_v4()));
+    let result = (|| {
+        let mut options = fs::OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(0o600);
+        }
+        let mut output = options.open(&tmp).map_err(|e| e.to_string())?;
+        std::io::copy(source, &mut output).map_err(|e| e.to_string())?;
+        output.sync_all().map_err(|e| e.to_string())?;
+        fs::hard_link(&tmp, path).map_err(|e| e.to_string())
+    })();
+    let _ = fs::remove_file(&tmp);
     result
 }
 
@@ -484,6 +549,16 @@ mod tests {
     }
 
     #[test]
+    fn atomic_create_never_replaces_an_existing_file_or_leaves_a_temp_file() {
+        let temp = tempfile::tempdir().unwrap();
+        let note = temp.path().join("note.md");
+        atomic_create(&note, &mut b"first".as_slice()).unwrap();
+        assert!(atomic_create(&note, &mut b"second".as_slice()).is_err());
+        assert_eq!(fs::read(&note).unwrap(), b"first");
+        assert_eq!(fs::read_dir(temp.path()).unwrap().count(), 1);
+    }
+
+    #[test]
     fn atomic_write_replaces_existing_content_wholesale() {
         let dir = unique_temp_dir("replace");
         let note = dir.join("note.md");
@@ -496,6 +571,17 @@ mod tests {
         assert_eq!(fs::read_to_string(&note).unwrap(), "short");
 
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn atomic_swap_keeps_the_displaced_version() {
+        let temp = tempfile::tempdir().unwrap();
+        let note = temp.path().join("note.md");
+        fs::write(&note, "external version").unwrap();
+        let displaced = atomic_swap(&note, b"draft version").unwrap();
+        assert_eq!(fs::read_to_string(&note).unwrap(), "draft version");
+        assert_eq!(fs::read_to_string(&displaced).unwrap(), "external version");
     }
 
     /// The property that matters: a concurrent reader never sees a partial note.

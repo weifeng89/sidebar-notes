@@ -692,6 +692,8 @@ body,
 .sn-detail-head{display:flex;align-items:center;justify-content:space-between;gap:5px;padding:12px 14px;border-bottom:1px solid var(--sn-line);font-size:12px}
 .sn-detail-head strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sn-detail-head small{color:var(--sn-stone)}
+.sn-detail-head button{border:0;background:transparent;color:var(--sn-stone);font-size:15px;padding:3px 5px;border-radius:5px}
+.sn-detail-head button:hover{background:var(--sn-soft);color:var(--sn-coral)}
 .sn-editor{flex:1;min-height:0;overflow:auto}
 .sn-editor>div{height:100%}
 .sn-empty{padding:16px;color:var(--sn-stone);font-size:12px}
